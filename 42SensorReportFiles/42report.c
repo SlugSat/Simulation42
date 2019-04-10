@@ -121,7 +121,7 @@ void SunReport(void)
 
       if (First) {
          First = 0;
-         sunfile = FileOpen(InOutPath,"SunSC.42","wt");
+         sunfile = FileOpen(InOutPath,"Sensor_Solar.42","wt");
       }
 
       fprintf(sunfile,"%le %le %le \n", 
@@ -140,7 +140,7 @@ void MagReport(void)
       
       if (First) {
          First = 0;
-         magfile1 = FileOpen(InOutPath,"MagSC.42","wt");
+         magfile1 = FileOpen(InOutPath,"Sensor_MagSC.42","wt");
         // magfile2 = FileOpen(InOutPath,"MagField.42", "wt");
        //  magfile3 = FileOpen(InOutPath, "MagAC.42", "wt");
       }
@@ -165,7 +165,7 @@ void GyroReport(void)
          First = 0;
 
 
-         gyrofile1 = FileOpen(InOutPath,"Gyrown.42","wt");
+         gyrofile1 = FileOpen(InOutPath,"Sensor_GyroWn.42","wt");
          //gyrofile2 = FileOpen(InOutPath,"GyroTrue.42","wt");
         // gyrofile3 = FileOpen(InOutPath,"GyroBias.42","wt");
         // gyrofile4 = FileOpen(InOutPath,"GyroAngle.42","wt");
