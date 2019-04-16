@@ -292,9 +292,11 @@ long SimStep(void)
       #endif
 
          //Input / Output to serial    
+         long i;
          int num_floats = 3;  //number of floats to send
-         double whlTrqd[3] mtbTrqd[3] whlTrqMax mtbTrqMax ; //doubles
-         float pwmWhl[3] pwmMtb[3] whlTrq[3] mtbTrq[3] bser[3] sunser[3] gyroser [3]; //float
+         double whlTrqd[3], mtbTrqd[3]; //doubles
+         double whlTrqMax, mtbTrqMax;
+         float pwmWhl[3], pwmMtb[3], whlTrq[3], mtbTrq[3], bser[3], sunser[3], gyroser [3]; //float
          //Convert sensor data to floats
          for (i=0;i<3;i++) {
              bser[i] =(float) SC[0].bvb[i]; //Magnetic field vector
@@ -304,7 +306,7 @@ long SimStep(void)
          //Send data through serial
          serialSendFloats(port, bser, num_floats);    
          serialSendFloats(port, gyroser, num_floats);
-         serialSendFloats(port, suser, num_floats);
+         serialSendFloats(port, sunser, num_floats);
         //Output text files
          GyroReport(); //Gyro report text file       
          SunReport(); //Sun sensor report text file
@@ -314,7 +316,7 @@ long SimStep(void)
          serialReceiveFloats(port, pwmWhl, num_floats); //Reaction wheel pwm
          serialReceiveFloats(port, pwmMtb, num_floats); //Torque rod pwm
          //Logic to convert from pwm to torque
-         for(i=0,i<3,i++) {
+         for(i=0;i<3;i++) {
             whlTrq[i] = whlTrqMax * pwmWhl[i];
             mtbTrq[i] = mtbTrqMax * pwmMtb[i];
          }
@@ -326,7 +328,7 @@ long SimStep(void)
          } 
          //Send reaction wheel torque to SC
          for(i=0;i<3;i++) {
-            &S->Whl[i].Trq = whlTrq[i];
+            S->Whl[i].Trq = whlTrq[i];
          }
          //Send mag torque to SC
          for(i=0;i<3;i++)   {           
