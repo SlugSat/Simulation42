@@ -11,10 +11,13 @@
 
 /*    All Other Rights Reserved.                                      */
 
-
+#include "SerialCommunication.h"
+#include "stdio.h"
 #define DECLARE_GLOBALS
 #include "42.h"
 #undef DECLARE_GLOBALS
+
+
 
 /* #ifdef __cplusplus
 ** namespace _42 {
@@ -269,8 +272,11 @@ long SimStep(void)
                PartitionForces(S); /* Orbit-affecting and "internal" */
             }
          }
-         
+
+
          Report();  /* File Output */
+      }
+
       ReportProgress();
       ManageFlags();
 
@@ -293,49 +299,71 @@ long SimStep(void)
 
          //Input / Output to serial    
          long i;
-         int num_floats = 3;  //number of floats to send
+         int num_floats = 9;  //number of floats to send
          double whlTrqd[3], mtbTrqd[3]; //doubles
          double whlTrqMax, mtbTrqMax;
-         float pwmWhl[3], pwmMtb[3], whlTrq[3], mtbTrq[3], bser[3], sunser[3], gyroser [3]; //float
+         float sersend[9], serrec[9];
+         float pwmWhl[3], pwmMtb[3], whlTrq[3], mtbTrq[3], bser[3], sunser[3], gyroser [3], brec[3], sunrec[3], gyrorec[3]; //float
          //Convert sensor data to floats
          for (i=0;i<3;i++) {
-             bser[i] =(float) SC[0].bvb[i]; //Magnetic field vector
-             gyroser[i] =(float) SC[0].B[0].wn[i]; //Gyro
+             bser[i] = (100000) *( SC[0].bvb[i]); //Convert to micro tesla
+             bser[i] = (float)bser[i]; //Convert to float
+             gyroser[i] = (float) SC[0].B[0].wn[i]; //Gyro (radians per second)
              sunser[i] =(float) SC[0].AC.svb[i]; //Solar vector
          }
-         //Send data through serial
-         serialSendFloats(port, bser, num_floats);    
-         serialSendFloats(port, gyroser, num_floats);
-         serialSendFloats(port, sunser, num_floats);
-        //Output text files
-         GyroReport(); //Gyro report text file       
-         SunReport(); //Sun sensor report text file
-         MagReport(); //Mag vector report
-      
-         //Receive data from micro
-         serialReceiveFloats(port, pwmWhl, num_floats); //Reaction wheel pwm
-         serialReceiveFloats(port, pwmMtb, num_floats); //Torque rod pwm
-         //Logic to convert from pwm to torque
-         for(i=0;i<3;i++) {
-            whlTrq[i] = whlTrqMax * pwmWhl[i];
-            mtbTrq[i] = mtbTrqMax * pwmMtb[i];
+         //Compile data into single float
+         for (i=0;i<3;i++) {
+         sersend[i] =bser[i];
+         sersend[i+3] = gyroser[i];
+         sersend[i+6] = sunser[i];
          }
-         //Convert from float to double
-         for (i=0;i<3;i++) 
-         {
-             whlTrqd[i] = (double) whlTrq[i]; 
-             mtbTrqd[i] = (double) mtbTrq[i];
-         } 
-         //Send reaction wheel torque to SC
-         for(i=0;i<3;i++) {
-            S->Whl[i].Trq = whlTrq[i];
-         }
-         //Send mag torque to SC
-         for(i=0;i<3;i++)   {           
-             S->B[0].Trq[i] += whlTrq[i];
-         }
-         
-         
+
+
+        //Send data through serial
+         serialSendFloats(serial_port, sersend, num_floats);
+         serialReceiveFloats(serial_port, serrec, num_floats);
+
+		 printf("\n Sent B:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n",
+				 sersend[0], sersend[1], sersend[2], sersend[3], sersend[4],sersend[5], sersend[6],sersend[7],
+				 sersend[7], sersend[8]);
+
+		 printf("\n Received B:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n",
+				 serrec[0], serrec[1], serrec[2], serrec[3], serrec[4],serrec[5], serrec[6],serrec[7],
+				 serrec[7], serrec[8]);
+
+
+
+
+
+		 /*//Receive data from micro
+		  serialReceiveFloats(serial_port, serrec, num_floats);
+		  //Split data into reaction wheel and torque rod torques
+		  for (i=0;i<3;i++) {
+			 pwmWhl[i] = serrec[i];
+				   }
+		  for (i=0;i<3;i++) {
+			  pwmMtb[i] = serrec[i+3];
+							}
+		  //Logic to convert from pwm to torque
+		  for(i=0;i<3;i++) {
+			 whlTrq[i] = whlTrqMax * pwmWhl[i];
+			 mtbTrq[i] = mtbTrqMax * pwmMtb[i];
+		  }
+		  //Convert from float to double
+		  for (i=0;i<3;i++)
+		  {
+			  whlTrqd[i] = (double) whlTrq[i];
+			  mtbTrqd[i] = (double) mtbTrq[i];
+		  }
+		  //Send reaction wheel torque to SC
+		  for(i=0;i<3;i++) {
+			 S->Whl[i].Trq = whlTrq[i];
+		  }
+		  //Send mag torque to SC
+		  for(i=0;i<3;i++)   {
+			  S->B[0].Trq[i] += whlTrq[i];
+		  }*/
+
       Ephemerides(); /* Sun, Moon, Planets, Spacecraft, Useful Auxiliary Frames */
       ZeroFrcTrq();
       for(Isc=0;Isc<Nsc;Isc++) {
@@ -364,8 +392,8 @@ long SimStep(void)
          #endif
       }
       return(SimComplete);
-
 }
+
 /**********************************************************************/
 int exec(int argc,char **argv)
 {
@@ -382,7 +410,7 @@ int exec(int argc,char **argv)
       CmdInterpreter();
       
       //Initialize linux serial library
-      port_t port = serialInit();
+      serial_port = serialInit();
       
       #ifdef _ENABLE_SOCKETS_
          InitInterProcessComm();
