@@ -1008,7 +1008,7 @@ void SlugSatFSW(struct SCType *S)
 	int sensorFloats = 9;//number of floats to send
 	int actuatorFloats = 6;//number of floats to receive
 	double whlTrqd[3], mtbTrqd[3]; //doubles
-	double whlTrqMax, mtbTrqMax;
+	double whlTrqMax, mtbTrqMax = 1e-5;
 	float sersend[sensorFloats], serrec[actuatorFloats];
 	float pwmWhl[3], pwmMtb[3], whlTrq[3], mtbTrq[3], bser[3], sunser[3], gyroser [3], brec[3], sunrec[3], gyrorec[3];
 
@@ -1052,23 +1052,18 @@ void SlugSatFSW(struct SCType *S)
 	for(i=0;i<3;i++) {
 		vRw[i] = vRwMax * (pwmWhl[i] /100);
 		rwTrq[i] = Kt/R*(vRw[i] - AC->Whl[i].H * Ke);
-		mtbTrq[i] = mtbTrqMax * pwmMtb[i];
 	}
 
 
 	//Torque rod PWM
-	for(i=3;i<6;i++){
-		pwmMtb[i] = serrec[i];
+	for(i=0;i<3;i++){
+		mtbTrq[i] = mtbTrqMax * serrec[i+3]/100.0;
+		AC->MTB[i].Mcmd = mtbTrq[i];
 	}
 
 	//Send reaction wheel torque to SC
 	for(i=0;i<3;i++) {
 		AC->Whl[i].Tcmd = 0; //whlTrq[i];
-	}
-
-	//Send mag torque to SC
-	for(i=0;i<3;i++) {
-		AC->MTB[i].Mcmd = 0; //whlTrq[i];
 	}
 
 
