@@ -123,7 +123,7 @@ ifeq ($(42PLATFORM),__linux__)
 
    ifneq ($(strip $(GUIFLAG)),)
       GUIOBJ = $(OBJ)42GlutGui.o $(OBJ)glkit.o 
-      #GLINC = -I /usr/include/ -I /usr/local/lib 
+      #GLINC = -I /usr/include/ -I /usr/local/include
       GLINC = -I $(KITDIR)/include/GL/
       LIBS = -lglut -lGLU -lGL -ldl -lm -lserialport
       LFLAGS = -L $(KITDIR)/GL/lib/
@@ -338,7 +338,13 @@ $(OBJ)AcApp.o          : $(SRC)AcApp.c $(INC)42fsw.h
 	$(CC) $(CFLAGS) -c $(SRC)AcApp.c -o $(OBJ)AcApp.o
 
 $(OBJ)42nos3.o         : $(SRC)42nos3.c 
-	$(CC) $(CFLAGS) -c $(SRC)42nos3.c -o $(OBJ)42nos3.o  
+	$(CC) $(CFLAGS) -c $(SRC)42nos3.c -o $(OBJ)42nos3.o
+
+$(OBJ)SerialCommunication.o : $(SRC)SerialCommunication.c
+	$(CC) $(CFLAGS) -c $(SRC)SerialCommunication.c -o $(OBJ)SerialCommunication.o
+
+$(OBJ)PacketProtocol.o : $(SRC)PacketProtocol.c
+	$(CC) $(CFLAGS) -c $(SRC)PacketProtocol.c -o $(OBJ)PacketProtocol.o
 
 $(OBJ)SerialCommunication.o         : $(SRC)SerialCommunication.c $(INC)SerialCommunication.h
 	$(CC) $(CFLAGS) -c $(SRC)SerialCommunication.c -o $(OBJ)SerialCommunication.o

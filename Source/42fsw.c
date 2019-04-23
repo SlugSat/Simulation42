@@ -13,6 +13,7 @@
 
 
 #include "42.h"
+#include "SerialCommunication.h"
 
 void AcFsw(struct AcType *AC);
 
@@ -985,95 +986,90 @@ void FindAppendageInertia(long Ig, struct SCType *S,double Iapp[3])
 }
 /**********************************************************************/
 /*  This simple control law is suitable for rapid prototyping.        */
-void SlugSatFSW(struct SCType *S)
+void SlugSatFSW(struct SCType *S, port_t serial_port)
 {
-      struct AcType *AC;
-      struct AcPrototypeCtrlType *C;
-      struct BodyType *B;
-      struct CmdType *Cmd;
-      double alpha[3],Iapp[3];
-      double Hvnb[3],Herr[3],werr[3];
-      double qbr[4];
-      int i;
-      double Kt = 7.13e-3, Ke = 7.82e-5, R = 92.7; // Reaction wheel motor constants 
-      double k = .7597; // Torque rod constant (based on physical parameters)
-      int vMtbMax = 3, vRwMax = 8; // Voltage rails
-      
-      AC = &S->AC;
-      C = &AC->PrototypeCtrl;
-      Cmd = &AC->Cmd;
-      
-      
-      //Input / Output to serial    
-         long i;
-         int sensorFloats = 9;//number of floats to send
-         int actuatorFloats = 6;//number of floats to receive
-         double whlTrqd[3], mtbTrqd[3]; //doubles
-         double whlTrqMax, mtbTrqMax;
-         float sersend[sensorFloats], serrec[actuatorFloats];
-         float pwmWhl[3], pwmMtb[3], whlTrq[3], mtbTrq[3], bser[3], sunser[3], gyroser [3], brec[3], sunrec[3], gyrorec[3]; //float
-         //Convert sensor data to floats
-         for (i=0;i<3;i++) {
-             bser[i] = (100000) *( SC[0].bvb[i]); //Convert to micro tesla
-             bser[i] = (float)bser[i]; //Convert to float
-             gyroser[i] = (float) SC[0].B[0].wn[i]; //Gyro (radians per second)
-             sunser[i] =(float) SC[0].AC.svb[i]; //Solar vector
-         }
-         //Compile data into single float
-         for (i=0;i<3;i++) {
-         sersend[i] =bser[i];
-         sersend[i+3] = gyroser[i];
-         sersend[i+6] = sunser[i];
-         }
+	struct AcType *AC;
+	struct AcPrototypeCtrlType *C;
+	struct BodyType *B;
+	struct CmdType *Cmd;
+	double alpha[3],Iapp[3];
+	double Hvnb[3],Herr[3],werr[3];
+	double qbr[4];
+	int i;
+	double Kt = 7.13e-3, Ke = 7.82e-5, R = 92.7; // Reaction wheel motor constants
+	double k = .7597; // Torque rod constant (based on physical parameters)
+	int vMtbMax = 3, vRwMax = 8; // Voltage rails
 
-        //Send data through serial
-         serialSendFloats(serial_port, sersend, sensorFloats);
-         serialReceiveFloats(serial_port, serrec, actuatorFloats);
+	AC = &S->AC;
+	C = &AC->PrototypeCtrl;
+	Cmd = &AC->Cmd;
 
-		 printf("\n Sent B:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n",
-				 sersend[0], sersend[1], sersend[2], sersend[3], sersend[4],sersend[5], sersend[6],sersend[7],
-				 sersend[7], sersend[8]);
+	//Input / Output to serial
+	int sensorFloats = 9;//number of floats to send
+	int actuatorFloats = 6;//number of floats to receive
+	double whlTrqd[3], mtbTrqd[3]; //doubles
+	double whlTrqMax, mtbTrqMax;
+	float sersend[sensorFloats], serrec[actuatorFloats];
+	float pwmWhl[3], pwmMtb[3], whlTrq[3], mtbTrq[3], bser[3], sunser[3], gyroser [3], brec[3], sunrec[3], gyrorec[3];
 
-		 printf("\n Received B:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n",
-				 serrec[0], serrec[1], serrec[2], serrec[3], serrec[4],serrec[5]);
-         
-         //Split data into reaction wheel and torque rod torques
-         
-         //Reaction wheel PWM
-         for(i=0;i<3;i++){
-         pwmWhl[i] = serRec[i];}   
-         
-		 //Convert from pwm to torque
-		 for(i=0;i<3;i++) {
-			vRw[i] = vRwMax * (pwmWhl[i] /100) ;
-            rwTrq = kt/R*(vRw - AC->Whl[i].H * ke)
-			mtbTrq[i] = mtbTrqMax * pwmMtb[i];
-		  }
-         
-         
-         //Torque rod PWM
-         for(i=3;i<6;i++){
-         pwmMtb[i] =serRec[i];}
-		  //Convert from float to double
-		  for (i=0;i<3;i++)
-		  {
-			  whlTrqd[i] = (double) whlTrq[i];
-			  mtbTrqd[i] = (double) mtbTrq[i];
-		  }
-		  //Send reaction wheel torque to SC
-		  for(i=0;i<3;i++) {
-			 S->Whl[i].Trq = whlTrq[i];
-		  }
-		  //Send mag torque to SC
-		  for(i=0;i<3;i++)   {
-			  S->B[0].Trq[i] += whlTrq[i];
-		  }*/
+	//Convert sensor data to floats
+	for (i=0;i<3;i++) {
+	 bser[i] = (100000) *( SC[0].bvb[i]); //Convert to micro tesla
+	 bser[i] = (float)bser[i]; //Convert to float
+	 gyroser[i] = (float) SC[0].B[0].wn[i]; //Gyro (radians per second)
+	 sunser[i] =(float) SC[0].AC.svb[i]; //Solar vector
+	}
 
-         
-         
-         
-         
-         //Code from 42            
+	//Compile data into single float
+	for (i=0;i<3;i++) {
+	sersend[i] =bser[i];
+	sersend[i+3] = gyroser[i];
+	sersend[i+6] = sunser[i];
+	}
+
+	//Send data through serial
+	serialSendFloats(serial_port, sersend, sensorFloats);
+	serialReceiveFloats(serial_port, serrec, actuatorFloats);
+
+	printf("\n Sent B:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n",
+		 sersend[0], sersend[1], sersend[2], sersend[3], sersend[4],sersend[5], sersend[6],sersend[7],
+		 sersend[7], sersend[8]);
+
+	printf("\n Received B:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n",
+		 serrec[0], serrec[1], serrec[2], serrec[3], serrec[4],serrec[5]);
+
+	//Split data into reaction wheel and torque rod torques
+
+	//Reaction wheel PWM
+	for(i=0;i<3;i++) {
+		pwmWhl[i] = serrec[i];
+	}
+
+	//Convert from pwm to torque
+	float vRw[3], rwTrq[3];
+	for(i=0;i<3;i++) {
+		vRw[i] = vRwMax * (pwmWhl[i] /100);
+		rwTrq[i] = Kt/R*(vRw[i] - AC->Whl[i].H * Ke);
+		mtbTrq[i] = mtbTrqMax * pwmMtb[i];
+	}
+
+
+	//Torque rod PWM
+	for(i=3;i<6;i++){
+		pwmMtb[i] = serrec[i];
+	}
+
+	//Send reaction wheel torque to SC
+	for(i=0;i<3;i++) {
+		S->Whl[i].Trq = whlTrq[i];
+	}
+
+	//Send mag torque to SC
+	for(i=0;i<3;i++) {
+		S->B[0].Trq[i] += whlTrq[i];
+	}
+
+        //Code from 42
                  
 //      if (Cmd->Parm == PARM_AXIS_SPIN) {
 //         if (C->Init) {
@@ -1115,18 +1111,17 @@ void SlugSatFSW(struct SCType *S)
 //         }
 
          /* Find qrn, wrn and joint angle commands */
-         ThreeAxisAttitudeCommand(S);
-
-         /* Form attitude error signals */
-         QxQT(AC->qbn,Cmd->qrn,qbr);
-         Q2AngleVec(qbr,C->therr);
-         for(i=0;i<3;i++) C->werr[i] = AC->wbn[i] - Cmd->wrn[i];
-
-         /* Closed-loop attitude control */
-         VectorRampCoastGlide(C->therr,C->werr,
-            C->wc,C->amax,C->vmax,alpha);
-         for(i=0;i<3;i++) AC->IdealTrq[i] = AC->MOI[i][i]*alpha[i];
-      }
+//         ThreeAxisAttitudeCommand(S);
+//
+//         /* Form attitude error signals */
+//         QxQT(AC->qbn,Cmd->qrn,qbr);
+//         Q2AngleVec(qbr,C->therr);
+//         for(i=0;i<3;i++) C->werr[i] = AC->wbn[i] - Cmd->wrn[i];
+//
+//         /* Closed-loop attitude control */
+//         VectorRampCoastGlide(C->therr,C->werr,C->wc,C->amax,C->vmax,alpha);
+//         for(i=0;i<3;i++) AC->IdealTrq[i] = AC->MOI[i][i]*alpha[i];
+//      }
 
 }
 /**********************************************************************/
@@ -1734,9 +1729,9 @@ void FlightSoftWare(struct SCType *S)
       switch(S->FswTag){
          case PASSIVE_FSW:
             break;
-         case PROTOTYPE_FSW:
-            PrototypeFSW(S);
-            break;
+         //case PROTOTYPE_FSW:
+           // PrototypeFSW(S);
+            //break;
          case AD_HOC_FSW:
             AdHocFSW(S);
             break;
