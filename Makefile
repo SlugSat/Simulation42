@@ -124,7 +124,7 @@ ifeq ($(42PLATFORM),__linux__)
    ifneq ($(strip $(GUIFLAG)),)
       GUIOBJ = $(OBJ)42GlutGui.o $(OBJ)glkit.o 
       #GLINC = -I /usr/include/ -I /usr/local/include
-      GLINC = -I $(KITDIR)/include/GL/
+      GLINC = -I $(KITDIR)/include/GL/ -I /usr/local/include
       LIBS = -lglut -lGLU -lGL -ldl -lm -lserialport
       LFLAGS = -L $(KITDIR)/GL/lib/
       ARCHFLAG = 
