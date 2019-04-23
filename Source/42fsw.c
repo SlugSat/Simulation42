@@ -986,10 +986,10 @@ void FindAppendageInertia(long Ig, struct SCType *S,double Iapp[3])
 }
 /**********************************************************************/
 /*  This simple control law is suitable for rapid prototyping.        */
-void SlugSatFSW(struct SCType *S, port_t serial_port)
+void SlugSatFSW(struct SCType *S)
 {
 	struct AcType *AC;
-	struct AcPrototypeCtrlType *C;
+	//struct AcPrototypeCtrlType *C;
 	struct BodyType *B;
 	struct CmdType *Cmd;
 	double alpha[3],Iapp[3];
@@ -1001,7 +1001,7 @@ void SlugSatFSW(struct SCType *S, port_t serial_port)
 	int vMtbMax = 3, vRwMax = 8; // Voltage rails
 
 	AC = &S->AC;
-	C = &AC->PrototypeCtrl;
+	//C = &AC->PrototypeCtrl;
 	Cmd = &AC->Cmd;
 
 	//Input / Output to serial
@@ -1027,6 +1027,8 @@ void SlugSatFSW(struct SCType *S, port_t serial_port)
 	sersend[i+6] = sunser[i];
 	}
 
+	printf("\nSerial start\n");
+
 	//Send data through serial
 	serialSendFloats(serial_port, sersend, sensorFloats);
 	serialReceiveFloats(serial_port, serrec, actuatorFloats);
@@ -1035,7 +1037,7 @@ void SlugSatFSW(struct SCType *S, port_t serial_port)
 		 sersend[0], sersend[1], sersend[2], sersend[3], sersend[4],sersend[5], sersend[6],sersend[7],
 		 sersend[7], sersend[8]);
 
-	printf("\n Received B:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n",
+	printf("\n Received B:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n",
 		 serrec[0], serrec[1], serrec[2], serrec[3], serrec[4],serrec[5]);
 
 	//Split data into reaction wheel and torque rod torques
@@ -1061,13 +1063,15 @@ void SlugSatFSW(struct SCType *S, port_t serial_port)
 
 	//Send reaction wheel torque to SC
 	for(i=0;i<3;i++) {
-		S->Whl[i].Trq = whlTrq[i];
+		AC->Whl[i].Tcmd = 0; //whlTrq[i];
 	}
 
 	//Send mag torque to SC
 	for(i=0;i<3;i++) {
-		S->B[0].Trq[i] += whlTrq[i];
+		AC->MTB[i].Mcmd = 0; //whlTrq[i];
 	}
+
+
 
         //Code from 42
                  
@@ -1729,9 +1733,9 @@ void FlightSoftWare(struct SCType *S)
       switch(S->FswTag){
          case PASSIVE_FSW:
             break;
-         //case PROTOTYPE_FSW:
-           // PrototypeFSW(S);
-            //break;
+         case SlugSat_FSW:
+            SlugSatFSW(S);
+            break;
          case AD_HOC_FSW:
             AdHocFSW(S);
             break;
