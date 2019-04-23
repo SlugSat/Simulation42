@@ -116,22 +116,22 @@ endif
 ifeq ($(42PLATFORM),__linux__)
    # Linux Macros
    CINC =
-   EXTERNDIR =  
+   EXTERNDIR = 
 
    #SOCKETFLAG = 
    SOCKETFLAG = -D _ENABLE_SOCKETS_
 
    ifneq ($(strip $(GUIFLAG)),)
       GUIOBJ = $(OBJ)42GlutGui.o $(OBJ)glkit.o 
-      #GLINC = -I /usr/include/
+      #GLINC = -I /usr/include/ -I /usr/local/lib 
       GLINC = -I $(KITDIR)/include/GL/
-      LIBS = -lglut -lGLU -lGL -ldl -lm
+      LIBS = -lglut -lGLU -lGL -ldl -lm -lserialport
       LFLAGS = -L $(KITDIR)/GL/lib/
       ARCHFLAG = 
    else
       GUIOBJ = 
       GLINC = 
-      LIBS = -ldl -lm
+      LIBS = -ldl -lm -lserialport
       LFLAGS = 
       ARCHFLAG = 
    endif
@@ -154,7 +154,7 @@ ifeq ($(42PLATFORM),__MSYS__)
    ifneq ($(strip $(GUIFLAG)),)
       GLEW = $(EXTERNDIR)GLEW/
       GLUT = $(EXTERNDIR)freeglut/
-      LIBS =  -lopengl32 -lglu32 -lfreeglut -lws2_32 -lglew32
+      LIBS =  -lopengl32 -lglu32 -lfreeglut -lws2_32 -lglew32 -lserialport
       LFLAGS = -L $(GLUT)lib/ -L $(GLEW)lib/
       GUIOBJ = $(OBJ)42GlutGui.o $(OBJ)glkit.o 
       GLINC = -I $(GLEW)include/GL/ -I $(GLUT)include/GL/
@@ -209,7 +209,8 @@ CFLAGS = -Wall -Wshadow -Wno-deprecated -g  $(ANSIFLAGS) $(GLINC) $(CINC) -I $(I
 $(OBJ)42dynamics.o $(OBJ)42environs.o $(OBJ)42ephem.o $(OBJ)42fsw.o \
 $(OBJ)42init.o $(OBJ)42perturb.o $(OBJ)42report.o \
 $(OBJ)42sensors.o \
-$(OBJ)42nos3.o
+$(OBJ)42nos3.o \
+$(OBJ)SerialCommunication.o $(OBJ)PacketProtocol.o
 
 ifneq ($(strip $(CFDFLAG)),)
    SLOSHOBJ = $(OBJ)42CfdSlosh.o
@@ -244,7 +245,7 @@ $(OBJ)42exec.o          : $(SRC)42exec.c $(INC)42.h
 	$(CC) $(CFLAGS) -c $(SRC)42exec.c -o $(OBJ)42exec.o  
 
 $(OBJ)42actuators.o : $(SRC)42actuators.c $(INC)42.h $(INC)42fsw.h  $(INC)fswdefines.h $(INC)fswtypes.h
-	$(CC) $(CFLAGS) -c $(SRC)42actuators.c -o $(OBJ)42actuators.o  
+	$(CC) $(CFLAGS) -c $(SRC)42actuators.c -o $(OBJ)42actuators.o
 
 $(OBJ)42cmd.o : $(SRC)42cmd.c $(INC)42.h $(INC)42fsw.h  $(INC)fswdefines.h $(INC)fswtypes.h
 	$(CC) $(CFLAGS) -c $(SRC)42cmd.c -o $(OBJ)42cmd.o  
@@ -338,6 +339,12 @@ $(OBJ)AcApp.o          : $(SRC)AcApp.c $(INC)42fsw.h
 
 $(OBJ)42nos3.o         : $(SRC)42nos3.c 
 	$(CC) $(CFLAGS) -c $(SRC)42nos3.c -o $(OBJ)42nos3.o  
+
+$(OBJ)SerialCommunication.o         : $(SRC)SerialCommunication.c $(INC)SerialCommunication.h
+	$(CC) $(CFLAGS) -c $(SRC)SerialCommunication.c -o $(OBJ)SerialCommunication.o
+
+$(OBJ)PacketProtocol.o         : $(SRC)PacketProtocol.c $(INC)PacketProtocol.h
+	$(CC) $(CFLAGS) -c $(SRC)PacketProtocol.c -o $(OBJ)PacketProtocol.o
 
 ########################  Miscellaneous Rules  ############################
 clean :
