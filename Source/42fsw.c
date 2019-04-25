@@ -997,6 +997,7 @@ void SlugSatFSW(struct SCType *S)
 	double qbr[4];
 	int i;
 	double Kt = 7.13e-3, Ke = 7.82e-5, R = 92.7; // Reaction wheel motor constants
+	static double w_rw_old[3] = {0, 0, 0}; // Reaction wheel speed last time
 	double k = .7597; // Torque rod constant (based on physical parameters)
 	int vMtbMax = 3, vRwMax = 8; // Voltage rails
 
@@ -1027,21 +1028,17 @@ void SlugSatFSW(struct SCType *S)
 	sersend[i+6] = sunser[i];
 	}
 
-	printf("\nSerial start\n");
-
 	//Send data through serial
 	serialSendFloats(serial_port, sersend, sensorFloats);
 	serialReceiveFloats(serial_port, serrec, actuatorFloats);
 
 	printf("\n Sent B:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n",
-		 sersend[0], sersend[1], sersend[2], sersend[3], sersend[4],sersend[5], sersend[6],sersend[7],
-		 sersend[7], sersend[8]);
+		 sersend[0], sersend[1], sersend[2], sersend[3], sersend[4],sersend[5], sersend[6], sersend[7], sersend[8]);
 
 	printf("\n Received B:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n",
 		 serrec[0], serrec[1], serrec[2], serrec[3], serrec[4],serrec[5]);
-
-	//Split data into reaction wheel and torque rod torques
-
+	
+	
 	//Reaction wheel PWM
 	for(i=0;i<3;i++) {
 		pwmWhl[i] = serrec[i];
