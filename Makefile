@@ -340,12 +340,6 @@ $(OBJ)AcApp.o          : $(SRC)AcApp.c $(INC)42fsw.h
 $(OBJ)42nos3.o         : $(SRC)42nos3.c 
 	$(CC) $(CFLAGS) -c $(SRC)42nos3.c -o $(OBJ)42nos3.o
 
-$(OBJ)SerialCommunication.o : $(SRC)SerialCommunication.c
-	$(CC) $(CFLAGS) -c $(SRC)SerialCommunication.c -o $(OBJ)SerialCommunication.o
-
-$(OBJ)PacketProtocol.o : $(SRC)PacketProtocol.c
-	$(CC) $(CFLAGS) -c $(SRC)PacketProtocol.c -o $(OBJ)PacketProtocol.o
-
 $(OBJ)SerialCommunication.o         : $(SRC)SerialCommunication.c $(INC)SerialCommunication.h
 	$(CC) $(CFLAGS) -c $(SRC)SerialCommunication.c -o $(OBJ)SerialCommunication.o
 

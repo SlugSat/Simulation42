@@ -922,6 +922,9 @@ void InitAC(struct SCType *S)
       }
       
       /* Controllers */
+      //Test SlugSat
+      AC->SlugSatCtrl.Init = 1;
+
       AC->PrototypeCtrl.Init = 1;
       AC->AdHocCtrl.Init = 1;
       AC->SpinnerCtrl.Init = 1;
@@ -932,6 +935,7 @@ void InitAC(struct SCType *S)
       AC->ThrCtrl.Init = 1;
       AC->CfsCtrl.Init = 1;
       
+
       AC->PrototypeCtrl.wc = 0.05*TwoPi;
       AC->PrototypeCtrl.amax = 0.01;
       AC->PrototypeCtrl.vmax = 0.5*D2R;
@@ -988,33 +992,31 @@ void FindAppendageInertia(long Ig, struct SCType *S,double Iapp[3])
 /*  This simple control law is suitable for rapid prototyping.        */
 void SlugSatFSW(struct SCType *S)
 {
-	struct AcType *AC;
-	//struct AcPrototypeCtrlType *C;
-	struct BodyType *B;
-	struct CmdType *Cmd;
-	double alpha[3],Iapp[3];
-	double Hvnb[3],Herr[3],werr[3];
-	double qbr[4];
-	int i;
+	//Variables from 42
+	struct AcType *AC; //Attitude control type
+	struct BodyType *B; //Body type
+	struct CmdType *Cmd; //Command type
+
+	//Actuator variables
 	double Kt = 7.13e-3, Ke = 7.82e-5, R = 92.7; // Reaction wheel motor constants
 	static double w_rw_old[3] = {0, 0, 0}; // Reaction wheel speed last time
 	double k = .7597; // Torque rod constant (based on physical parameters)
 	int vMtbMax = 3, vRwMax = 8; // Voltage rails
 
+	//Copies values from S(Spacecraft) to AC
 	AC = &S->AC;
-	//C = &AC->PrototypeCtrl;
 	Cmd = &AC->Cmd;
 
 	//Input / Output to serial
 	int sensorFloats = 9;//number of floats to send
 	int actuatorFloats = 6;//number of floats to receive
-	double whlTrqd[3], mtbTrqd[3]; //doubles
-	double whlTrqMax, mtbTrqMax = 1e-5;
-	float sersend[sensorFloats], serrec[actuatorFloats];
-	float pwmWhl[3], pwmMtb[3], whlTrq[3], mtbTrq[3], bser[3], sunser[3], gyroser [3], brec[3], sunrec[3], gyrorec[3];
+	double whlTrqMax, mtbTrqMax = 100; //Max torques
+	float sersend[sensorFloats], serrec[actuatorFloats]; //serial send and receive
+	float bser[3], sunser[3], gyroser [3], brec[3], sunrec[3], gyrorec[3]; //Sensor values to send
+	double pwmWhl[3], pwmMtb[3], whlTrq[3], mtbTrq[3]; //Actuator pwm and torques
 
 	//Convert sensor data to floats
-	for (i=0;i<3;i++) {
+	for (int i=0;i<3;i++) {
 	 bser[i] = (100000) *( SC[0].bvb[i]); //Convert to micro tesla
 	 bser[i] = (float)bser[i]; //Convert to float
 	 gyroser[i] = (float) SC[0].B[0].wn[i]; //Gyro (radians per second)
@@ -1022,7 +1024,7 @@ void SlugSatFSW(struct SCType *S)
 	}
 
 	//Compile data into single float
-	for (i=0;i<3;i++) {
+	for (int i=0;i<3;i++) {
 	sersend[i] =bser[i];
 	sersend[i+3] = gyroser[i];
 	sersend[i+6] = sunser[i];
@@ -1032,94 +1034,42 @@ void SlugSatFSW(struct SCType *S)
 	serialSendFloats(serial_port, sersend, sensorFloats);
 	serialReceiveFloats(serial_port, serrec, actuatorFloats);
 
+	//Print data to verify transmission
 	printf("\n Sent B:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n",
 		 sersend[0], sersend[1], sersend[2], sersend[3], sersend[4],sersend[5], sersend[6], sersend[7], sersend[8]);
 
 	printf("\n Received B:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n",
 		 serrec[0], serrec[1], serrec[2], serrec[3], serrec[4],serrec[5]);
-	
-	
-	//Reaction wheel PWM
-	for(i=0;i<3;i++) {
-		pwmWhl[i] = serrec[i];
+
+	//Convert to double and split into reaction wheels and torque rods
+	for(int i=0;i<3;i++) {
+		pwmWhl[i] = (double)serrec[i];	//Reaction Wheel
+		pwmMtb[i] = (double)serrec[i+3]; //Magnetic torque bar
 	}
 
-	//Convert from pwm to torque
-	float vRw[3], rwTrq[3];
-	for(i=0;i<3;i++) {
+	//Convert reaction wheel pwm to torque & send to AC
+	float vRw[3], rwTrq[3]; //rw voltage and torque
+	for(int i=0;i<3;i++) {
 		vRw[i] = vRwMax * (pwmWhl[i] /100);
 		rwTrq[i] = Kt/R*(vRw[i] - AC->Whl[i].H * Ke);
+		AC->Whl[i].Tcmd = 0;
 	}
 
-
-	//Torque rod PWM
-	for(i=0;i<3;i++){
-		mtbTrq[i] = mtbTrqMax * serrec[i+3]/100.0;
+	//Convert torque rod pwm to torque & send to AC
+	for(int i=0;i<3;i++){
+		mtbTrq[i] = pwmMtb[i];
 		AC->MTB[i].Mcmd = mtbTrq[i];
+		for(int j = 0;j < 3;j++) {
+			if(i == j) {
+				S->MTB[i].Trq[j] = mtbTrq[i];
+			}
+			else {
+				S->MTB[i].Trq[j] = 0;
+			}
+		}
 	}
-
-	//Send reaction wheel torque to SC
-	for(i=0;i<3;i++) {
-		AC->Whl[i].Tcmd = 0; //whlTrq[i];
-	}
-
-
-
-        //Code from 42
-                 
-//      if (Cmd->Parm == PARM_AXIS_SPIN) {
-//         if (C->Init) {
-//            C->Init = 0;
-//            C->Kprec = 3.0E-2;
-//            C->Knute = 1.0;
-//         }
-//         
-//         SpinnerCommand(S);
-//         
-//         B = &S->B[0];
-//         
-//         MxV(B->CN,Cmd->Hvn,Hvnb);
-//         
-//         for(i=0;i<3;i++) {
-//            Herr[i] = S->Hvb[i] - Hvnb[i];
-//            werr[i] = AC->wbn[i] - Cmd->wrn[i];
-//            C->Tcmd[i] = -C->Knute*werr[i];
-//            if (MAGV(Herr) < 0.5*MAGV(Cmd->Hvn)) {
-//               C->Tcmd[i] -= C->Kprec*Herr[i];
-//            }
-//            AC->IdealTrq[i] = Limit(C->Tcmd[i],-0.1,0.1); 
-//         }
-//         
-//      }
-//      else {
-//         if (C->Init) {
-//            C->Init = 0;
-//            for(Ig=0;Ig<AC->Ng;Ig++) {
-//               FindAppendageInertia(Ig,S,Iapp);
-//               for(j=0;j<3;j++) {
-//                  FindPDGains(Iapp[j],0.05,1.0,
-//                     &AC->G[Ig].AngRateGain[j],
-//                     &AC->G[Ig].AngGain[j]);
-//                  AC->G[Ig].MaxAngRate[j] = 0.5*D2R;
-//                  AC->G[Ig].MaxTrq[j] = 0.1;
-//               }
-//            }
-//         }
-
-         /* Find qrn, wrn and joint angle commands */
-//         ThreeAxisAttitudeCommand(S);
-//
-//         /* Form attitude error signals */
-//         QxQT(AC->qbn,Cmd->qrn,qbr);
-//         Q2AngleVec(qbr,C->therr);
-//         for(i=0;i<3;i++) C->werr[i] = AC->wbn[i] - Cmd->wrn[i];
-//
-//         /* Closed-loop attitude control */
-//         VectorRampCoastGlide(C->therr,C->werr,C->wc,C->amax,C->vmax,alpha);
-//         for(i=0;i<3;i++) AC->IdealTrq[i] = AC->MOI[i][i]*alpha[i];
-//      }
-
 }
+
 /**********************************************************************/
 /*  SC_Spinner is a one-body spin-stabilized inertial pointer         */
 void SpinnerFSW(struct SCType *S)
