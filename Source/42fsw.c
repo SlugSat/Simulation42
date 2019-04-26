@@ -1010,7 +1010,7 @@ void SlugSatFSW(struct SCType *S)
 	//Input / Output to serial
 	int sensorFloats = 9;//number of floats to send
 	int actuatorFloats = 6;//number of floats to receive
-	double whlTrqMax, mtbTrqMax = 100; //Max torques
+	double whlTrqMax, mtbTrqMax = 2; //Max torques
 	float sersend[sensorFloats], serrec[actuatorFloats]; //serial send and receive
 	float bser[3], sunser[3], gyroser [3], brec[3], sunrec[3], gyrorec[3]; //Sensor values to send
 	double pwmWhl[3], pwmMtb[3], whlTrq[3], mtbTrq[3]; //Actuator pwm and torques
@@ -1057,16 +1057,15 @@ void SlugSatFSW(struct SCType *S)
 
 	//Convert torque rod pwm to torque & send to AC
 	for(int i=0;i<3;i++){
-		mtbTrq[i] = pwmMtb[i];
-		AC->MTB[i].Mcmd = mtbTrq[i];
-		for(int j = 0;j < 3;j++) {
-			if(i == j) {
-				S->MTB[i].Trq[j] = mtbTrq[i];
-			}
-			else {
-				S->MTB[i].Trq[j] = 0;
-			}
-		}
+		AC->MTB[i].Mcmd = mtbTrqMax*pwmMtb[i]/100.0;
+//		for(int j = 0;j < 3;j++) {
+//			if(i == j) {
+//				S->MTB[i].Trq[j] = mtbTrq[i];
+//			}
+//			else {
+//				S->MTB[i].Trq[j] = 0;
+//			}
+//		}
 	}
 }
 
