@@ -994,78 +994,87 @@ void SlugSatFSW(struct SCType *S)
 {
 	//Variables from 42
 	struct AcType *AC; //Attitude control type
-	struct BodyType *B; //Body type
 	struct CmdType *Cmd; //Command type
 
 	//Actuator variables
-	double Kt = 7.13e-3, Ke = 7.82e-5, R = 92.7; // Reaction wheel motor constants
-	static double w_rw_old[3] = {0, 0, 0}; // Reaction wheel speed last time
+	static double Kt = 0.00713, Ke = 0.0000782, R = 92.7; // Reaction wheel motor constants
+	static double w_rw[3] = {0, 0, 0}; // Reaction wheel speed
+	double w_rw_dot[3];
+	static double Jrw_inv[3][3] = {{1.8416e6, 0, 0},{0, 1.8416e6, 0},{0, 0, 1.8416e6}}; // Inverse (and negative) reaction wheel inertia
+	double mtbTrqMax = 2.0; // Max torque rod dipole moment
 	double k = .7597; // Torque rod constant (based on physical parameters)
-	int vMtbMax = 3, vRwMax = 8; // Voltage rails
+	int vRwMax = 8, vMtbMax = 3.3; // Voltage rails
 
 	//Copies values from S(Spacecraft) to AC
 	AC = &S->AC;
 	Cmd = &AC->Cmd;
 
 	//Input / Output to serial
-	int sensorFloats = 9;//number of floats to send
-	int actuatorFloats = 6;//number of floats to receive
-	double whlTrqMax, mtbTrqMax = 2; //Max torques
+	int sensorFloats = 13; //number of floats to send
+	int actuatorFloats = 6; //number of floats to receive
 	float sersend[sensorFloats], serrec[actuatorFloats]; //serial send and receive
-	float bser[3], sunser[3], gyroser [3], brec[3], sunrec[3], gyrorec[3]; //Sensor values to send
+	float bser[3], sunser[3], gyroser [3]; //Sensor values to send
 	double pwmWhl[3], pwmMtb[3], whlTrq[3], mtbTrq[3]; //Actuator pwm and torques
 
 	//Convert sensor data to floats
-	for (int i=0;i<3;i++) {
-	 bser[i] = (100000) *( SC[0].bvb[i]); //Convert to micro tesla
-	 bser[i] = (float)bser[i]; //Convert to float
-	 gyroser[i] = (float) SC[0].B[0].wn[i]; //Gyro (radians per second)
-	 sunser[i] =(float) SC[0].AC.svb[i]; //Solar vector
+	for (int i = 0;i < 3;i++) {
+		bser[i] = (100000)*( SC[0].bvb[i]); //Magnetic field in micro Tesla (body frame)
+		bser[i] = (float)bser[i]; //Convert to float
+		gyroser[i] = (float)SC[0].B[0].wn[i]; //Gyro (radians per second)
+		sunser[i] = (float)SC[0].AC.svb[i]; //Solar vector (body frame)
 	}
 
+	//Find position in J2000
+	double C_TEME_TETE[3][3], C_TETE_J2000[3][3], posJ2000[3];
+	SimpleEarthPrecNute(JulDay, C_TEME_TETE, C_TETE_J2000);
+	MxV(C_TETE_J2000, SC[0].B->pn, posJ2000);
+
 	//Compile data into single float
-	for (int i=0;i<3;i++) {
-	sersend[i] =bser[i];
-	sersend[i+3] = gyroser[i];
-	sersend[i+6] = sunser[i];
+	for (int i = 0;i < 3;i++) {
+		sersend[i] = bser[i];
+		sersend[i+3] = gyroser[i];
+		sersend[i+6] = sunser[i];
+		sersend[i+9] = (float)posJ2000[i];
 	}
+	sersend[12] = JulDay;
 
 	//Send data through serial
 	serialSendFloats(serial_port, sersend, sensorFloats);
 	serialReceiveFloats(serial_port, serrec, actuatorFloats);
 
 	//Print data to verify transmission
-	printf("\n Sent B:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n",
-		 sersend[0], sersend[1], sersend[2], sersend[3], sersend[4],sersend[5], sersend[6], sersend[7], sersend[8]);
+	//printf("\n Sent B:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n",
+	//	 sersend[0], sersend[1], sersend[2], sersend[3], sersend[4],sersend[5], sersend[6], sersend[7], sersend[8]);
 
-	printf("\n Received B:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n",
-		 serrec[0], serrec[1], serrec[2], serrec[3], serrec[4],serrec[5]);
+	//printf("\n Received B:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n",
+	//	 serrec[0], serrec[1], serrec[2], serrec[3], serrec[4],serrec[5]);
 
-	//Convert to double and split into reaction wheels and torque rods
-	for(int i=0;i<3;i++) {
-		pwmWhl[i] = (double)serrec[i];	//Reaction Wheel
-		pwmMtb[i] = (double)serrec[i+3]; //Magnetic torque bar
+	// Convert to double and split into reaction wheels and torque rods
+	for(int i = 0;i < 3;i++) {
+		pwmWhl[i] = (double)serrec[i];	// Reaction Wheel
+		pwmMtb[i] = (double)serrec[i+3]; // Magnetic torque bar
 	}
 
-	//Convert reaction wheel pwm to torque & send to AC
-	float vRw[3], rwTrq[3]; //rw voltage and torque
-	for(int i=0;i<3;i++) {
-		vRw[i] = vRwMax * (pwmWhl[i] /100);
-		rwTrq[i] = Kt/R*(vRw[i] - AC->Whl[i].H * Ke);
-		AC->Whl[i].Tcmd = 0;
+	// Convert reaction wheel PWM to torque & send to AC
+	double vRw[3], rwTrq[3]; // Reaction wheel voltage and torque
+	printf("RW torque: ");
+	for(int i = 0;i < 3;i++) {
+		vRw[i] = vRwMax*(pwmWhl[i]/100.0);
+		rwTrq[i] = (Kt/R)*(vRw[i] - w_rw[i]*Ke);
+		printf("%4.4e\t", rwTrq[i]);
+		AC->Whl[i].Tcmd = rwTrq[i];
 	}
+	printf("\nRW speed: ");
+	MxV(Jrw_inv, rwTrq, w_rw_dot); // Get reaction wheel acceleration
+	for(int i = 0;i < 3;i++){
+		w_rw[i] += w_rw_dot[i]*(AC->DT); // Integrate to find reaction wheel speed
+		printf("%4.4e\t", w_rw[i]);
+	}
+	printf("\n\n");
 
-	//Convert torque rod pwm to torque & send to AC
-	for(int i=0;i<3;i++){
-		AC->MTB[i].Mcmd = mtbTrqMax*pwmMtb[i]/100.0;
-//		for(int j = 0;j < 3;j++) {
-//			if(i == j) {
-//				S->MTB[i].Trq[j] = mtbTrq[i];
-//			}
-//			else {
-//				S->MTB[i].Trq[j] = 0;
-//			}
-//		}
+	//Convert torque rod PWM to torque & send to AC
+	for(int i = 0;i < 3;i++){
+		AC->MTB[i].Mcmd = k*vMtbMax*pwmMtb[i]/100.0;
 	}
 }
 
