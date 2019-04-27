@@ -340,7 +340,7 @@ int exec(int argc,char **argv)
       
       //Initialize linux serial library
       serial_port = serialInit();
-      
+
       #ifdef _ENABLE_SOCKETS_
          InitInterProcessComm();
       #endif

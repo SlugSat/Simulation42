@@ -992,29 +992,31 @@ void FindAppendageInertia(long Ig, struct SCType *S,double Iapp[3])
 /*  This simple control law is suitable for rapid prototyping.        */
 void SlugSatFSW(struct SCType *S)
 {
+	// Check if the STM32 board is plugged in
+	if(serial_port == NULL) {
+		return;
+	}
+
 	//Variables from 42
 	struct AcType *AC; //Attitude control type
-	struct CmdType *Cmd; //Command type
 
 	//Actuator variables
-	static double Kt = 0.00713, Ke = 0.0000782, R = 92.7; // Reaction wheel motor constants
 	static double w_rw[3] = {0, 0, 0}; // Reaction wheel speed
 	double w_rw_dot[3];
-	static double Jrw_inv[3][3] = {{1.8416e6, 0, 0},{0, 1.8416e6, 0},{0, 0, 1.8416e6}}; // Inverse (and negative) reaction wheel inertia
-	double mtbTrqMax = 2.0; // Max torque rod dipole moment
+	static double Jrw[3][3] = {{1.255e-5, 0, 0},{0, 1.255e-5, 0},{0, 0, 1.255e-5}}; // Reaction wheel inertia
+	static double Jrw_inv[3][3] = {{7.9709e4, 0, 0},{0, 7.9709e4, 0},{0, 0, 7.9709e4}}; // Inverse reaction wheel inertia
 	double k = .7597; // Torque rod constant (based on physical parameters)
 	int vRwMax = 8, vMtbMax = 3.3; // Voltage rails
 
-	//Copies values from S(Spacecraft) to AC
+	// Get AC pointer
 	AC = &S->AC;
-	Cmd = &AC->Cmd;
 
 	//Input / Output to serial
 	int sensorFloats = 13; //number of floats to send
 	int actuatorFloats = 6; //number of floats to receive
 	float sersend[sensorFloats], serrec[actuatorFloats]; //serial send and receive
 	float bser[3], sunser[3], gyroser [3]; //Sensor values to send
-	double pwmWhl[3], pwmMtb[3], whlTrq[3], mtbTrq[3]; //Actuator pwm and torques
+	double pwmWhl[3], pwmMtb[3]; //Actuator pwm and torques
 
 	//Convert sensor data to floats
 	for (int i = 0;i < 3;i++) {
@@ -1055,20 +1057,36 @@ void SlugSatFSW(struct SCType *S)
 		pwmMtb[i] = (double)serrec[i+3]; // Magnetic torque bar
 	}
 
+
 	// Convert reaction wheel PWM to torque & send to AC
+	static double Kt = 0.00713, Ke = 0.00713332454, R = 92.7; // Reaction wheel motor constants
+	double sample_dt = 0.1; // Oversampling dt
 	double vRw[3], rwTrq[3]; // Reaction wheel voltage and torque
-	printf("RW torque: ");
-	for(int i = 0;i < 3;i++) {
-		vRw[i] = vRwMax*(pwmWhl[i]/100.0);
-		rwTrq[i] = (Kt/R)*(vRw[i] - w_rw[i]*Ke);
-		printf("%4.4e\t", rwTrq[i]);
-		AC->Whl[i].Tcmd = rwTrq[i];
+
+	// Save old RW speed
+	double w_rw_old[3] = {w_rw[0], w_rw[1], w_rw[2]};
+
+	// Oversample reaction wheel dynamics
+	for(double t = 0;t < AC->DT;t += sample_dt) {
+		for(int i = 0;i < 3;i++) {
+			vRw[i] = vRwMax*(pwmWhl[i]/100.0); // Get voltage across motor
+			rwTrq[i] = (Kt/R)*(vRw[i] - w_rw[i]*Ke); // Find torque from DC motor equation
+			w_rw_dot[i] = Jrw_inv[i][i]*rwTrq[i]; // Find acceleration from torque
+			w_rw[i] += w_rw_dot[i]*sample_dt; // Integrate to find reaction wheel speed
+		}
 	}
+
+	// Print RW speed
 	printf("\nRW speed: ");
-	MxV(Jrw_inv, rwTrq, w_rw_dot); // Get reaction wheel acceleration
-	for(int i = 0;i < 3;i++){
-		w_rw[i] += w_rw_dot[i]*(AC->DT); // Integrate to find reaction wheel speed
+	for(int i = 0;i < 3;i++) {
 		printf("%4.4e\t", w_rw[i]);
+	}
+
+	// Send torque to achieve the correct change in rotational inertia in the next sim step
+	printf("\nRW torque: ");
+	for(int i = 0;i < 3;i++) {
+		AC->Whl[i].Tcmd = Jrw[i][i]*(w_rw[i] - w_rw_old[i])/AC->DT;
+		printf("%4.4e\t", AC->Whl[i].Tcmd);
 	}
 	printf("\n\n");
 
@@ -1677,8 +1695,8 @@ void AdHocFSW(struct SCType *S)
 void FlightSoftWare(struct SCType *S)
 {
       static long First = 1;
-      static SOCKET AcSocket;
-      int AcPort = 101010;
+      // static SOCKET AcSocket;
+      // int AcPort = 101010;
 
       switch(S->FswTag){
          case PASSIVE_FSW:
