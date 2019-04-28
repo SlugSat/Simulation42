@@ -1012,7 +1012,7 @@ void SlugSatFSW(struct SCType *S)
 	AC = &S->AC;
 
 	//Input / Output to serial
-	int sensorFloats = 13; //number of floats to send
+	int sensorFloats = 16; //number of floats to send
 	int actuatorFloats = 6; //number of floats to receive
 	float sersend[sensorFloats], serrec[actuatorFloats]; //serial send and receive
 	float bser[3], sunser[3], gyroser [3]; //Sensor values to send
@@ -1037,8 +1037,9 @@ void SlugSatFSW(struct SCType *S)
 		sersend[i+3] = gyroser[i];
 		sersend[i+6] = sunser[i];
 		sersend[i+9] = (float)posJ2000[i];
+		sersend[i+12] = (float)w_rw[i];
 	}
-	sersend[12] = JulDay;
+	sersend[15] = JulDay;
 
 	//Send data through serial
 	serialSendFloats(serial_port, sersend, sensorFloats);
@@ -1082,13 +1083,29 @@ void SlugSatFSW(struct SCType *S)
 		printf("%4.4e\t", w_rw[i]);
 	}
 
+	printf("\nCraft speed: ");
+	for(int i = 0;i < 3;i++) {
+		printf("%4.4e\t", S->B[0].wn[i]);
+	}
+
+	// Find gyroscopic forces
+	// w = S->B[0].wn -- Craft w (angular velocity vector)
+	// Jb = S->B[0].I -- Craft J (inertia matrix)
+	double p_wp[3]; // RW inertia
+	double t_gyro[3]; // Gyroscopic torque
+	for(int i = 0;i < 3;i++) {
+		p_wp[i] = Jrw[i][i]*w_rw[i];
+	}
+	VxV(S->B[0].wn, p_wp, t_gyro); // t_gyro = w x (Jb*w + Jrw*r_rw)
+
 	// Send torque to achieve the correct change in rotational inertia in the next sim step
 	printf("\nRW torque: ");
 	for(int i = 0;i < 3;i++) {
-		AC->Whl[i].Tcmd = Jrw[i][i]*(w_rw[i] - w_rw_old[i])/AC->DT;
+		AC->Whl[i].Tcmd = Jrw[i][i]*(w_rw[i] - w_rw_old[i]/AC->DT) + t_gyro[i];
 		printf("%4.4e\t", AC->Whl[i].Tcmd);
 	}
 	printf("\n\n");
+
 
 	//Convert torque rod PWM to torque & send to AC
 	for(int i = 0;i < 3;i++){
