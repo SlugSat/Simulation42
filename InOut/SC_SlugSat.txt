@@ -62,7 +62,7 @@ FALSE  FALSE  FALSE           ! TrnDOF Locked
 0.0                           ! Initial Momentum, N-m-sec
 1.0   0.0   0.0               ! Wheel Axis Components, [X, Y, Z]
 10.00   10.00                 ! Max Torque (N-m), Momentum (N-m-sec)
-1.00                          ! Wheel Rotor Inertia, kg-m^2
+0.00                          ! Wheel Rotor Inertia, kg-m^2
 0.00                          ! Static Imbalance, g-cm
 0.00                          ! Dynamic Imbalance, g-cm^2
 0                             ! Flex Node Index
