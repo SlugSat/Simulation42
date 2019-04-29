@@ -996,8 +996,10 @@ void SlugSatFSW(struct SCType *S)
 	if(serial_port == NULL) {
 		return;
 	}
+
 	//Variables from 42
 	struct AcType *AC; //Attitude control type
+
 	//Actuator variables
 	static double w_rw[3] = {0, 0, 0}; // Reaction wheel speed
 	double w_rw_dot[3];
@@ -1005,12 +1007,9 @@ void SlugSatFSW(struct SCType *S)
 	static double Jrw_inv[3][3] = {{7.9709e4, 0, 0},{0, 7.9709e4, 0},{0, 0, 7.9709e4}}; // Inverse reaction wheel inertia
 	double k = .7597; // Torque rod constant (based on physical parameters)
 	int vRwMax = 8, vMtbMax = 3.3; // Voltage rails
+
 	// Get AC pointer
 	AC = &S->AC;
-
-	//Position with respect to the World (Earth, PosW)
-	double PosW [3];
-	MxV(World[EARTH].CWN,SC[0].PosN,PosW);
 
 
 	//Input / Output to serial
@@ -1027,6 +1026,10 @@ void SlugSatFSW(struct SCType *S)
 		gyroser[i] = (float)SC[0].B[0].wn[i]; //Gyro (radians per second)
 		sunser[i] = (float)SC[0].AC.svb[i]; //Solar vector (body frame)
 	}
+
+	//Position with respect to the World (Earth, PosW)
+	double PosW [3];
+	MxV(World[EARTH].CWN, SC[0].PosN, PosW);
 
 	//Find position in J2000
 	double C_TEME_TETE[3][3], C_TETE_J2000[3][3], posJ2000[3];

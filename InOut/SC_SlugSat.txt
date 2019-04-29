@@ -28,7 +28,7 @@ FALSE                         ! Include 2nd Order Flex Terms
 1                             ! Number of Bodies
 ================================ Body 0 ================================
 0.5                           ! Mass
-0.25  0.25  0.25                 ! Moments of Inertia (kg-m^2)
+0.25  0.25  0.25              ! Moments of Inertia (kg-m^2)
 0.0  0.0  0.0                 ! Products of Inertia (xy,xz,yz)
 0.0  0.0  0.0                 ! Location of mass center, m
 0.0  0.0  0.0                 ! Constant Embedded Momentum (Nms)
@@ -61,26 +61,26 @@ FALSE  FALSE  FALSE           ! TrnDOF Locked
 =============================  Wheel 0  ================================
 0.0                           ! Initial Momentum, N-m-sec
 1.0   0.0   0.0               ! Wheel Axis Components, [X, Y, Z]
-10.000   10.000                 ! Max Torque (N-m), Momentum (N-m-sec)
+10.00   10.00                 ! Max Torque (N-m), Momentum (N-m-sec)
 1.00                          ! Wheel Rotor Inertia, kg-m^2
 0.00                          ! Static Imbalance, g-cm
-0.00                         ! Dynamic Imbalance, g-cm^2
+0.00                          ! Dynamic Imbalance, g-cm^2
 0                             ! Flex Node Index
 =============================  Wheel 1  ================================
 0.0                           ! Initial Momentum, N-m-sec
 0.0   1.0   0.0               ! Wheel Axis Components, [X, Y, Z]
-10.00   10.00                   ! Max Torque (N-m), Momentum (N-m-sec)
-0.00                           ! Wheel Rotor Inertia, kg-m^2
-0.00                           ! Static Imbalance, g-cm
+10.00   10.00                 ! Max Torque (N-m), Momentum (N-m-sec)
+0.00                          ! Wheel Rotor Inertia, kg-m^2
+0.00                          ! Static Imbalance, g-cm
 0.00                          ! Dynamic Imbalance, g-cm^2
 0                             ! Flex Node Index
 =============================  Wheel 2  ================================
 0.0                           ! Initial Momentum, N-m-sec
 0.0   0.0   1.0               ! Wheel Axis Components, [X, Y, Z]
-10.000   10.00                   ! Max Torque (N-m), Momentum (N-m-sec)
+10.00   10.00                 ! Max Torque (N-m), Momentum (N-m-sec)
 0.00                          ! Wheel Rotor Inertia, kg-m^2
-0.00                           ! Static Imbalance, g-cm
-0.00                         ! Dynamic Imbalance, g-cm^2
+0.00                          ! Static Imbalance, g-cm
+0.00                          ! Dynamic Imbalance, g-cm^2
 0                             ! Flex Node Index
 **************************** MTB Parameters ****************************
 3                                   ! Number of MTBs
