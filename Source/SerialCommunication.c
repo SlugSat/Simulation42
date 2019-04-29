@@ -18,7 +18,7 @@
 #include <PacketProtocol.h>
 
 #define BAUD 115200
-#define UART_TIMEOUT 50
+#define UART_TIMEOUT 100
 
 #define STM_DESCRIPTION "STM32 STLink"
 
@@ -28,7 +28,7 @@ void receivePacket(port_t port, uint8_t* packet, unsigned int bytes) {
 	do{
 		bytes_received = sp_input_waiting(port);
 	} while(bytes_received < bytes);
-	sp_blocking_read(port, packet, bytes_received, UART_TIMEOUT);
+	sp_blocking_read(port, packet, bytes, UART_TIMEOUT);
 }
 
 // Public functions
@@ -61,6 +61,10 @@ port_t serialInit(void) {
 	}
 
 	sp_set_baudrate(port, BAUD);
+
+	sp_flush(port, SP_BUF_BOTH);
+	sp_drain(port);
+
 	return port;
 }
 
@@ -96,5 +100,15 @@ int serialReceiveFloats(port_t port, float* f, unsigned int n) {
 	packetToFloats(f, data_packet, n);
 	
 	// Add send ack here
+	return 0;
+}
+
+int serialReceiveString(port_t port, char* string) {
+	int i = -1;
+	do {
+		while(sp_input_waiting(port) < 1);
+		i++;
+		sp_blocking_read(port, &string[i], 1, UART_TIMEOUT);
+	} while(string[i] != '\0'); // Wait for null character
 	return 0;
 }

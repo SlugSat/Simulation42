@@ -1012,7 +1012,7 @@ void SlugSatFSW(struct SCType *S)
 	AC = &S->AC;
 
 	//Input / Output to serial
-	int sensorFloats = 16; //number of floats to send
+	int sensorFloats = 17; //number of floats to send
 	int actuatorFloats = 6; //number of floats to receive
 	float sersend[sensorFloats], serrec[actuatorFloats]; //serial send and receive
 	float bser[3], sunser[3], gyroser [3]; //Sensor values to send
@@ -1029,28 +1029,37 @@ void SlugSatFSW(struct SCType *S)
 	//Find position in J2000
 	double C_TEME_TETE[3][3], C_TETE_J2000[3][3], posJ2000[3];
 	SimpleEarthPrecNute(JulDay, C_TEME_TETE, C_TETE_J2000);
-	MxV(C_TETE_J2000, SC[0].B->pn, posJ2000);
+	MxV(C_TETE_J2000, SC[0].PosRinN, posJ2000);
 
 	//Compile data into single float
 	for (int i = 0;i < 3;i++) {
 		sersend[i] = bser[i];
 		sersend[i+3] = gyroser[i];
 		sersend[i+6] = sunser[i];
-		sersend[i+9] = (float)posJ2000[i];
+		sersend[i+9] = (float)SC[0].PosR[i];
 		sersend[i+12] = (float)w_rw[i];
 	}
-	sersend[15] = JulDay;
+	sersend[15] = (float)JulDay;
+	sersend[16] = (float)SimTime;
 
 	//Send data through serial
 	serialSendFloats(serial_port, sersend, sensorFloats);
 	serialReceiveFloats(serial_port, serrec, actuatorFloats);
 
 	//Print data to verify transmission
-	//printf("\n Sent B:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n",
-	//	 sersend[0], sersend[1], sersend[2], sersend[3], sersend[4],sersend[5], sersend[6], sersend[7], sersend[8]);
+	printf("\n Sent:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\n",
+		 sersend[0], sersend[1], sersend[2], sersend[3], sersend[4],sersend[5], sersend[6], sersend[7], sersend[8], sersend[9],
+		 sersend[10], sersend[11], sersend[12], sersend[13], sersend[14], sersend[15], sersend[16]);
 
-	//printf("\n Received B:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n",
-	//	 serrec[0], serrec[1], serrec[2], serrec[3], serrec[4],serrec[5]);
+	printf("\n Received:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n",
+		 serrec[0], serrec[1], serrec[2], serrec[3], serrec[4],serrec[5]);
+
+	// Receive string from STM32 (for debugging purposes)
+	char string[500];
+	serialReceiveString(serial_port, string);
+	if(strlen(string) > 0) {
+		printf("PRINT FROM STM32\n%s\nEND PRINT FROM STM32\n", string);
+	}
 
 	// Convert to double and split into reaction wheels and torque rods
 	for(int i = 0;i < 3;i++) {
@@ -1101,7 +1110,7 @@ void SlugSatFSW(struct SCType *S)
 	// Send torque to achieve the correct change in rotational inertia in the next sim step
 	printf("\nRW torque: ");
 	for(int i = 0;i < 3;i++) {
-		AC->Whl[i].Tcmd = Jrw[i][i]*(w_rw[i] - w_rw_old[i]/AC->DT) + t_gyro[i];
+		AC->Whl[i].Tcmd = Jrw[i][i]*(w_rw[i] - w_rw_old[i]/AC->DT) - t_gyro[i];
 		printf("%4.4e\t", AC->Whl[i].Tcmd);
 	}
 	printf("\n\n");
