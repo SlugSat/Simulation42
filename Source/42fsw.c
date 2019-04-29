@@ -996,10 +996,8 @@ void SlugSatFSW(struct SCType *S)
 	if(serial_port == NULL) {
 		return;
 	}
-
 	//Variables from 42
 	struct AcType *AC; //Attitude control type
-
 	//Actuator variables
 	static double w_rw[3] = {0, 0, 0}; // Reaction wheel speed
 	double w_rw_dot[3];
@@ -1007,9 +1005,13 @@ void SlugSatFSW(struct SCType *S)
 	static double Jrw_inv[3][3] = {{7.9709e4, 0, 0},{0, 7.9709e4, 0},{0, 0, 7.9709e4}}; // Inverse reaction wheel inertia
 	double k = .7597; // Torque rod constant (based on physical parameters)
 	int vRwMax = 8, vMtbMax = 3.3; // Voltage rails
-
 	// Get AC pointer
 	AC = &S->AC;
+
+	//Position with respect to the World (Earth, PosW)
+	double PosW [3];
+	MxV(World[EARTH].CWN,SC[0].PosN,PosW);
+
 
 	//Input / Output to serial
 	int sensorFloats = 17; //number of floats to send
@@ -1036,7 +1038,7 @@ void SlugSatFSW(struct SCType *S)
 		sersend[i] = bser[i];
 		sersend[i+3] = gyroser[i];
 		sersend[i+6] = sunser[i];
-		sersend[i+9] = (float)SC[0].PosR[i];
+		sersend[i+9] = (float)PosW[i];
 		sersend[i+12] = (float)w_rw[i];
 	}
 	sersend[15] = (float)JulDay;
@@ -1085,18 +1087,16 @@ void SlugSatFSW(struct SCType *S)
 			w_rw[i] += w_rw_dot[i]*sample_dt; // Integrate to find reaction wheel speed
 		}
 	}
-
 	// Print RW speed
 	printf("\nRW speed: ");
 	for(int i = 0;i < 3;i++) {
 		printf("%4.4e\t", w_rw[i]);
 	}
-
+	//Print Craft speed
 	printf("\nCraft speed: ");
 	for(int i = 0;i < 3;i++) {
 		printf("%4.4e\t", S->B[0].wn[i]);
 	}
-
 	// Find gyroscopic forces
 	// w = S->B[0].wn -- Craft w (angular velocity vector)
 	// Jb = S->B[0].I -- Craft J (inertia matrix)
@@ -1115,13 +1115,11 @@ void SlugSatFSW(struct SCType *S)
 	}
 	printf("\n\n");
 
-
 	//Convert torque rod PWM to torque & send to AC
 	for(int i = 0;i < 3;i++){
 		AC->MTB[i].Mcmd = k*vMtbMax*pwmMtb[i]/100.0;
 	}
 }
-
 /**********************************************************************/
 /*  SC_Spinner is a one-body spin-stabilized inertial pointer         */
 void SpinnerFSW(struct SCType *S)
