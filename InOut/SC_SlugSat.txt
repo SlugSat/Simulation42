@@ -32,7 +32,7 @@ FALSE                         ! Include 2nd Order Flex Terms
 0.0  0.0  0.0                 ! Products of Inertia (xy,xz,yz)
 0.0  0.0  0.0                 ! Location of mass center, m
 0.0  0.0  0.0                 ! Constant Embedded Momentum (Nms)
-Cubesat_1U.obj                   ! Geometry Input File Name
+slugsat.obj                   ! Geometry Input File Name
 NONE                          ! Flex File Name
 ************************************************************************
 *************************** Joint Parameters ***************************
