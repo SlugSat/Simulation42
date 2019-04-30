@@ -1088,32 +1088,22 @@ void SlugSatFSW(struct SCType *S)
 	// Print RW speed
 	printf("\nRW speed: ");
 	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", w_rw[i]);
+		printf("%4.4e\t", S->Whl[i].w);
 	}
 
-	//Print Craft speed
+	// Print Craft speed
 	printf("\nCraft speed: ");
 	for(int i = 0;i < 3;i++) {
 		printf("%4.4e\t", S->B[0].wn[i]);
 	}
 
-	// Find gyroscopic forces
-	// w = S->B[0].wn -- Craft w (angular velocity vector)
-	// Jb = S->B[0].I -- Craft J (inertia matrix)
-//	double p_wp[3]; // RW inertia
-//	double t_gyro[3]; // Gyroscopic torque
-//	for(int i = 0;i < 3;i++) {
-//		p_wp[i] = Jrw[i][i]*w_rw[i];
-//	}
-//	VxV(S->B[0].wn, p_wp, t_gyro); // t_gyro = w x (Jb*w + Jrw*r_rw)
-
 	// Send torque to achieve the correct change in rotational inertia in the next sim step
 	printf("\nRW torque: ");
 	for(int i = 0;i < 3;i++) {
-		AC->Whl[i].Tcmd = AC->Whl[i].J*(w_rw[i] - w_rw_old[i]/AC->DT); // - t_gyro[i];
-		AC->Whl[i].H = AC->Whl[i].J*w_rw[i];
-		AC->Whl[i].w = w_rw[i];
-		printf("%4.4e\t", AC->Whl[i].Tcmd);
+		AC->Whl[i].Tcmd = AC->Whl[i].J*(w_rw[i] - w_rw_old[i])/AC->DT; // - t_gyro[i];
+		//AC->Whl[i].H = AC->Whl[i].J*w_rw[i];
+		//AC->Whl[i].w = w_rw[i];
+		printf("%4.4e\t", S->Whl[i].Trq);
 	}
 	printf("\n\n");
 
