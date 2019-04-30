@@ -1003,10 +1003,8 @@ void SlugSatFSW(struct SCType *S)
 	//Actuator variables
 	static double w_rw[3] = {0, 0, 0}; // Reaction wheel speed
 	double w_rw_dot[3];
-	static double Jrw[3][3] = {{1.255e-5, 0, 0},{0, 1.255e-5, 0},{0, 0, 1.255e-5}}; // Reaction wheel inertia
-	static double Jrw_inv[3][3] = {{7.9709e4, 0, 0},{0, 7.9709e4, 0},{0, 0, 7.9709e4}}; // Inverse reaction wheel inertia
-	double k = .7597; // Torque rod constant (based on physical parameters)
-	int vRwMax = 8, vMtbMax = 3.3; // Voltage rails
+	double k = 0.7597; // Torque rod constant (based on physical parameters)
+	int vRwMax = 8.0, vMtbMax = 3.3; // Voltage rails
 
 	// Get AC pointer
 	AC = &S->AC;
@@ -1027,21 +1025,17 @@ void SlugSatFSW(struct SCType *S)
 		sunser[i] = (float)SC[0].AC.svb[i]; //Solar vector (body frame)
 	}
 
-	//Position with respect to the World (Earth, PosW)
-	double PosW [3];
-	MxV(World[EARTH].CWN, SC[0].PosN, PosW);
-
 	//Find position in J2000
 	double C_TEME_TETE[3][3], C_TETE_J2000[3][3], posJ2000[3];
 	SimpleEarthPrecNute(JulDay, C_TEME_TETE, C_TETE_J2000);
-	MxV(C_TETE_J2000, SC[0].PosRinN, posJ2000);
+	MxV(C_TETE_J2000, SC[0].PosN, posJ2000);
 
 	//Compile data into single float
 	for (int i = 0;i < 3;i++) {
 		sersend[i] = bser[i];
 		sersend[i+3] = gyroser[i];
 		sersend[i+6] = sunser[i];
-		sersend[i+9] = (float)PosW[i];
+		sersend[i+9] = (float)posJ2000[i];
 		sersend[i+12] = (float)w_rw[i];
 	}
 	sersend[15] = (float)JulDay;
@@ -1086,34 +1080,39 @@ void SlugSatFSW(struct SCType *S)
 		for(int i = 0;i < 3;i++) {
 			vRw[i] = vRwMax*(pwmWhl[i]/100.0); // Get voltage across motor
 			rwTrq[i] = (Kt/R)*(vRw[i] - w_rw[i]*Ke); // Find torque from DC motor equation
-			w_rw_dot[i] = Jrw_inv[i][i]*rwTrq[i]; // Find acceleration from torque
+			w_rw_dot[i] = rwTrq[i]/AC->Whl[i].J; // Find acceleration from torque
 			w_rw[i] += w_rw_dot[i]*sample_dt; // Integrate to find reaction wheel speed
 		}
 	}
+
 	// Print RW speed
 	printf("\nRW speed: ");
 	for(int i = 0;i < 3;i++) {
 		printf("%4.4e\t", w_rw[i]);
 	}
+
 	//Print Craft speed
 	printf("\nCraft speed: ");
 	for(int i = 0;i < 3;i++) {
 		printf("%4.4e\t", S->B[0].wn[i]);
 	}
+
 	// Find gyroscopic forces
 	// w = S->B[0].wn -- Craft w (angular velocity vector)
 	// Jb = S->B[0].I -- Craft J (inertia matrix)
-	double p_wp[3]; // RW inertia
-	double t_gyro[3]; // Gyroscopic torque
-	for(int i = 0;i < 3;i++) {
-		p_wp[i] = Jrw[i][i]*w_rw[i];
-	}
-	VxV(S->B[0].wn, p_wp, t_gyro); // t_gyro = w x (Jb*w + Jrw*r_rw)
+//	double p_wp[3]; // RW inertia
+//	double t_gyro[3]; // Gyroscopic torque
+//	for(int i = 0;i < 3;i++) {
+//		p_wp[i] = Jrw[i][i]*w_rw[i];
+//	}
+//	VxV(S->B[0].wn, p_wp, t_gyro); // t_gyro = w x (Jb*w + Jrw*r_rw)
 
 	// Send torque to achieve the correct change in rotational inertia in the next sim step
 	printf("\nRW torque: ");
 	for(int i = 0;i < 3;i++) {
-		AC->Whl[i].Tcmd = Jrw[i][i]*(w_rw[i] - w_rw_old[i]/AC->DT) - t_gyro[i];
+		AC->Whl[i].Tcmd = AC->Whl[i].J*(w_rw[i] - w_rw_old[i]/AC->DT); // - t_gyro[i];
+		AC->Whl[i].H = AC->Whl[i].J*w_rw[i];
+		AC->Whl[i].w = w_rw[i];
 		printf("%4.4e\t", AC->Whl[i].Tcmd);
 	}
 	printf("\n\n");

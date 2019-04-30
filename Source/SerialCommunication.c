@@ -109,6 +109,6 @@ int serialReceiveString(port_t port, char* string) {
 		while(sp_input_waiting(port) < 1);
 		i++;
 		sp_blocking_read(port, &string[i], 1, UART_TIMEOUT);
-	} while(string[i] != '\0'); // Wait for null character
+	} while(string[i] != '\0' && i < 300); // Wait for null character
 	return 0;
 }
