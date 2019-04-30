@@ -1031,9 +1031,14 @@ void SlugSatFSW(struct SCType *S)
 	}
 
 	//Find position in J2000
-	double C_TEME_TETE[3][3], C_TETE_J2000[3][3], posJ2000[3];
-	SimpleEarthPrecNute(JulDay, C_TEME_TETE, C_TETE_J2000);
-	MxV(C_TETE_J2000, SC[0].PosN, posJ2000);
+	double C_TEME_TETE[3][3], C_TETE_J2000[3][3], temp[3], posJ2000[3];
+	HiFiEarthPrecNute(JulDay, C_TEME_TETE, C_TETE_J2000);
+//	printf("%4.4f\t%4.4f\t%4.4f\n%4.4f\t%4.4f\t%4.4f\n%4.4f\t%4.4f\t%4.4f\n",
+//			C_TETE_J2000[0][0],C_TETE_J2000[0][1],C_TETE_J2000[0][2],
+//			C_TETE_J2000[1][0],C_TETE_J2000[1][1],C_TETE_J2000[1][2],
+//			C_TETE_J2000[2][0],C_TETE_J2000[2][1],C_TETE_J2000[2][2]);
+	//MxV(C_TEME_TETE, Orb[0].PosN, temp);
+	MxV(C_TETE_J2000, Orb[0].PosN, posJ2000);
 
 	//Compile data into single float
 	for (int i = 0;i < 3;i++) {
