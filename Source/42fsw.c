@@ -1022,7 +1022,12 @@ void SlugSatFSW(struct SCType *S)
 		bser[i] = (1e6)*( SC[0].bvb[i]); //Magnetic field in micro Tesla (body frame)
 		bser[i] = (float)bser[i]; //Convert to float
 		gyroser[i] = (float)SC[0].B[0].wn[i]; //Gyro (radians per second)
-		sunser[i] = (float)SC[0].AC.svb[i]; //Solar vector (body frame)
+		if(SC[0].AC.SunValid) {
+			sunser[i] = (float)SC[0].AC.svb[i]; //Solar vector (body frame)
+		}
+		else {
+			sunser[i] = 0; // Simulate darkness
+		}
 	}
 
 	//Find position in J2000
