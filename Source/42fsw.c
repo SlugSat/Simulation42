@@ -1010,14 +1010,14 @@ void SlugSatFSW(struct SCType *S)
 	AC = &S->AC;
 
 
-	//Input / Output to serial
-	int sensorFloats = 17; //number of floats to send
+	// Input / Output to serial
+	int sensorFloats = 18; //number of floats to send
 	int actuatorFloats = 6; //number of floats to receive
 	float sersend[sensorFloats], serrec[actuatorFloats]; //serial send and receive
 	float bser[3], sunser[3], gyroser [3]; //Sensor values to send
 	double pwmWhl[3], pwmMtb[3]; //Actuator pwm and torques
 
-	//Convert sensor data to floats
+	// Convert sensor data to floats
 	for (int i = 0;i < 3;i++) {
 		bser[i] = (1e6)*( SC[0].bvb[i]); //Magnetic field in micro Tesla (body frame)
 		bser[i] = (float)bser[i]; //Convert to float
@@ -1030,17 +1030,12 @@ void SlugSatFSW(struct SCType *S)
 		}
 	}
 
-	//Find position in J2000
-	double C_TEME_TETE[3][3], C_TETE_J2000[3][3], temp[3], posJ2000[3];
+	// Find position in J2000
+	double C_TEME_TETE[3][3], C_TETE_J2000[3][3], posJ2000[3];
 	HiFiEarthPrecNute(JulDay, C_TEME_TETE, C_TETE_J2000);
-//	printf("%4.4f\t%4.4f\t%4.4f\n%4.4f\t%4.4f\t%4.4f\n%4.4f\t%4.4f\t%4.4f\n",
-//			C_TETE_J2000[0][0],C_TETE_J2000[0][1],C_TETE_J2000[0][2],
-//			C_TETE_J2000[1][0],C_TETE_J2000[1][1],C_TETE_J2000[1][2],
-//			C_TETE_J2000[2][0],C_TETE_J2000[2][1],C_TETE_J2000[2][2]);
-	//MxV(C_TEME_TETE, Orb[0].PosN, temp);
 	MxV(C_TETE_J2000, Orb[0].PosN, posJ2000);
 
-	//Compile data into single float
+	// Compile data into single float
 	for (int i = 0;i < 3;i++) {
 		sersend[i] = bser[i];
 		sersend[i+3] = gyroser[i];
@@ -1048,26 +1043,47 @@ void SlugSatFSW(struct SCType *S)
 		sersend[i+9] = (float)posJ2000[i];
 		sersend[i+12] = (float)w_rw[i];
 	}
-	sersend[15] = (float)JulDay;
-	sersend[16] = (float)SimTime;
+
+	// Get Julian date
+	double JD = AbsTimeToJD(AbsTime);
+	double JD_int;
+	double JD_frac = modf(JD, &JD_int); // Send JD as a sum of two floats to preserve precision
+	sersend[15] = (float)JD_int;
+	sersend[16] = (float)JD_frac;
+	sersend[17] = (float)SimTime;
 
 	//Send data through serial
 	serialSendFloats(serial_port, sersend, sensorFloats);
 	serialReceiveFloats(serial_port, serrec, actuatorFloats);
 
 	//Print data to verify transmission
-	printf("\n Sent:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\n",
-		 sersend[0], sersend[1], sersend[2], sersend[3], sersend[4],sersend[5], sersend[6], sersend[7], sersend[8], sersend[9],
-		 sersend[10], sersend[11], sersend[12], sersend[13], sersend[14], sersend[15], sersend[16]);
+	printf("\nTX:\n");
+	for(int i = 0;i < sensorFloats;i++) {
+		printf("%16.4f", sersend[i]);
+		if((i+1)%3 == 0) {
+			printf("\n");
+		}
+		else {
+			printf(" ");
+		}
+	}
 
-	printf("\n Received:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n",
-		 serrec[0], serrec[1], serrec[2], serrec[3], serrec[4],serrec[5]);
+	printf("\nRX:\n");
+		for(int i = 0;i < actuatorFloats;i++) {
+			printf("%16.4f", serrec[i]);
+			if((i+1)%3 == 0) {
+				printf("\n");
+			}
+			else {
+				printf(" ");
+			}
+		}
 
 	// Receive string from STM32 (for debugging purposes)
 	char string[500];
 	serialReceiveString(serial_port, string);
 	if(strlen(string) > 0) {
-		printf("PRINT FROM STM32\n%s\nEND PRINT FROM STM32\n", string);
+		printf("\nPRINT FROM STM32\n%s\nEND PRINT FROM STM32\n", string);
 	}
 
 	// Convert to double and split into reaction wheels and torque rods
@@ -1095,27 +1111,26 @@ void SlugSatFSW(struct SCType *S)
 		}
 	}
 
-	// Print RW speed
-	printf("\nRW speed: ");
-	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", S->Whl[i].w);
-	}
-
 	// Print Craft speed
-	printf("\nCraft speed: ");
+	printf("\nCraft speed:\t");
 	for(int i = 0;i < 3;i++) {
 		printf("%4.4e\t", S->B[0].wn[i]);
 	}
 
-	// Send torque to achieve the correct change in rotational inertia in the next sim step
-	printf("\nRW torque: ");
+	// Print RW speed
+	printf("\nRW speed:\t");
 	for(int i = 0;i < 3;i++) {
-		AC->Whl[i].Tcmd = AC->Whl[i].J*(w_rw[i] - w_rw_old[i])/AC->DT; // - t_gyro[i];
-		//AC->Whl[i].H = AC->Whl[i].J*w_rw[i];
-		//AC->Whl[i].w = w_rw[i];
+		printf("%4.4e\t", S->Whl[i].w);
+	}
+
+	// Send torque to achieve the correct change in rotational inertia in the next sim step
+	printf("\nRW torque:\t");
+	for(int i = 0;i < 3;i++) {
+		AC->Whl[i].Tcmd = AC->Whl[i].J*(w_rw[i] - w_rw_old[i])/AC->DT;
 		printf("%4.4e\t", S->Whl[i].Trq);
 	}
 	printf("\n\n");
+
 
 	//Convert torque rod PWM to torque & send to AC
 	for(int i = 0;i < 3;i++){
