@@ -233,8 +233,8 @@ endif
 42 : $(42OBJ) $(GUIOBJ) $(IPCOBJ) $(FFTBOBJ) $(SLOSHOBJ) $(KITOBJ) $(MATLABOBJ) $(ACOBJ)
 	$(CC) $(LFLAGS) $(GMSECBIN) -o $(EXENAME) $(42OBJ) $(GUIOBJ) $(IPCOBJ) $(FFTBOBJ) $(SLOSHOBJ) $(KITOBJ) $(MATLABOBJ) $(ACOBJ) $(LIBS) $(GMSECLIB)
 
-AcApp : $(OBJ)AcApp.o $(OBJ)dcmkit.o $(OBJ)mathkit.o $(OBJ)fswkit.o $(OBJ)iokit.o
-	$(CC) $(LFLAGS) -o AcApp $(OBJ)AcApp.o $(OBJ)dcmkit.o $(OBJ)mathkit.o $(OBJ)fswkit.o $(OBJ)iokit.o
+AcApp : $(OBJ)AcApp.o $(OBJ)dcmkit.o $(OBJ)mathkit.o $(OBJ)fswkit.o $(OBJ)iokit.o $(OBJ)SerialCommunication.o $(OBJ)PacketProtocol.o
+	$(CC) $(LFLAGS) -o AcApp $(OBJ)AcApp.o $(OBJ)dcmkit.o $(OBJ)mathkit.o $(OBJ)fswkit.o $(OBJ)iokit.o $(OBJ)SerialCommunication.o $(OBJ)PacketProtocol.o
 
 ####################  Rules to compile objects  ###########################
 
