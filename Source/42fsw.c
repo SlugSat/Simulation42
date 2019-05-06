@@ -1056,6 +1056,10 @@ void SlugSatFSW(struct SCType *S)
 	serialSendFloats(serial_port, sersend, sensorFloats);
 	serialReceiveFloats(serial_port, serrec, actuatorFloats);
 
+	// Receive string from STM32 (for debugging purposes)
+	char string[500];
+	serialReceiveString(serial_port, string);
+
 	//Print data to verify transmission
 	printf("\nTX:\n");
 	for(int i = 0;i < sensorFloats;i++) {
@@ -1069,19 +1073,16 @@ void SlugSatFSW(struct SCType *S)
 	}
 
 	printf("\nRX:\n");
-		for(int i = 0;i < actuatorFloats;i++) {
-			printf("%16.4f", serrec[i]);
-			if((i+1)%3 == 0) {
-				printf("\n");
-			}
-			else {
-				printf(" ");
-			}
+	for(int i = 0;i < actuatorFloats;i++) {
+		printf("%16.4f", serrec[i]);
+		if((i+1)%3 == 0) {
+			printf("\n");
 		}
+		else {
+			printf(" ");
+		}
+	}
 
-	// Receive string from STM32 (for debugging purposes)
-	char string[500];
-	serialReceiveString(serial_port, string);
 	if(strlen(string) > 0) {
 		printf("\nPRINT FROM STM32\n%s\nEND PRINT FROM STM32\n", string);
 	}
