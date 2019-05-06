@@ -51,7 +51,7 @@ port_t serialInit(void) {
 		i++;
 		description = sp_get_port_description(port);
 		description[strlen(STM_DESCRIPTION)] = '\0'; // Truncate description
-	} while(strcmp(description, STM_DESCRIPTION) != 0);
+	} while(strcmp(description, STM_DESCRIPTION) != 0 /*&& strcmp(description, "ttyS0") != 0*/);
 	
 	printf("Opening port:\n");
 	printf("%s | %s\n", sp_get_port_name(port), sp_get_port_description(port));
