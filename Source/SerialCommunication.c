@@ -18,7 +18,7 @@
 #include <PacketProtocol.h>
 
 #define BAUD 115200
-#define UART_TIMEOUT 100
+#define UART_TIMEOUT 20
 
 #define STM_DESCRIPTION "STM32 STLink"
 
@@ -50,7 +50,7 @@ port_t serialInit(void) {
 		i++;
 		description = sp_get_port_description(port);
 		description[strlen(STM_DESCRIPTION)] = '\0'; // Truncate description
-	} while(strcmp(description, STM_DESCRIPTION) != 0);
+	} while(strcmp(description, STM_DESCRIPTION) != 0 /*&& strcmp(description, "ttyS0") != 0*/);
 	
 	printf("Opening port:\n");
 	printf("%s | %s\n", sp_get_port_name(port), sp_get_port_description(port));
@@ -63,44 +63,63 @@ port_t serialInit(void) {
 	sp_set_baudrate(port, BAUD);
 
 	sp_flush(port, SP_BUF_BOTH);
-	sp_drain(port);
+	//sp_drain(port);
 
 	return port;
 }
 
-int serialSendFloats(port_t port, float* f, unsigned int n) {
-	// Send start packet
-	//uint8_t start_packet[CONTROL_PACKET_SIZE];
-	//makeControlPacket(start_packet, START);
-	//sp_blocking_write(port, start_packet, BYTES_PER_FLOAT*n, UART_TIMEOUT);	
 
+void serialHandshake(port_t port) {
+	sp_flush(port, SP_BUF_BOTH); // Flush UART registers
+
+	uint8_t send[1] = {HANDSHAKE_BYTE};
+	uint8_t receive[1];
+
+	// Wait to receive handshake byte
+	while(1) {
+		if(sp_blocking_read(port, receive, 1, UART_TIMEOUT) > 0) {
+			if(receive[0] == HANDSHAKE_BYTE) {
+
+				// Send handshake byte
+				sp_blocking_write(port, send, 1, UART_TIMEOUT);
+
+				// Flush UART registers and return
+				sp_flush(port, SP_BUF_BOTH);
+				return;
+			}
+		}
+	}
+}
+
+
+int serialSendFloats(port_t port, float* f, unsigned int n) {
 	// Create data packet
 	uint8_t data_packet[BYTES_PER_FLOAT*n];
 	floatsToPacket(f, data_packet, n);
 
 	// Send packet
 	enum sp_return err = sp_blocking_write(port, data_packet, BYTES_PER_FLOAT*n, UART_TIMEOUT);
+	sp_drain(port);
 	return err;
-
-	// Add wait for ack here
 }
 
 int serialReceiveFloats(port_t port, float* f, unsigned int n) {
-	// Wait for start packet
-	//uint8_t start_packet[CONTROL_PACKET_SIZE] = {0};
-	//do {
-	//	receivePacket(port, start_packet, CONTROL_PACKET_SIZE);
-	//} while(isControlPacket(start_packet) != START);	
-
 	// Receive data packet
 	uint8_t data_packet[BYTES_PER_FLOAT*n];
-	receivePacket(port, data_packet, BYTES_PER_FLOAT*n);
+	//receivePacket(port, data_packet, BYTES_PER_FLOAT*n);
+	int err = sp_blocking_read(port, data_packet, BYTES_PER_FLOAT*n, UART_TIMEOUT);
 
-	// Read packet
-	packetToFloats(f, data_packet, n);
-	
-	// Add send ack here
-	return 0;
+	if(err == BYTES_PER_FLOAT*n) {
+		// Read packet
+		packetToFloats(f, data_packet, n);
+	}
+	else {
+		for(int i = 0;i < n;i++) {
+			f[n] = 0;
+		}
+	}
+
+	return err;
 }
 
 int serialReceiveString(port_t port, char* string) {
@@ -108,7 +127,7 @@ int serialReceiveString(port_t port, char* string) {
 	do {
 		while(sp_input_waiting(port) < 1);
 		i++;
-		sp_blocking_read(port, &string[i], 1, UART_TIMEOUT);
+		if(sp_blocking_read(port, &string[i], 1, UART_TIMEOUT) <= 0) return 1;
 	} while(string[i] != '\0' && i < 300); // Wait for null character
 	return 0;
 }
