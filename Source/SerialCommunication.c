@@ -18,8 +18,7 @@
 #include <PacketProtocol.h>
 
 #define BAUD 115200
-#define UART_TIMEOUT 250
-#define HANDSHAKE_TIMEOUT 500
+#define UART_TIMEOUT 20
 
 #define STM_DESCRIPTION "STM32 STLink"
 
@@ -107,16 +106,20 @@ int serialSendFloats(port_t port, float* f, unsigned int n) {
 int serialReceiveFloats(port_t port, float* f, unsigned int n) {
 	// Receive data packet
 	uint8_t data_packet[BYTES_PER_FLOAT*n];
-	receivePacket(port, data_packet, BYTES_PER_FLOAT*n);
-//	enum sp_return err = sp_blocking_read(port, data_packet, BYTES_PER_FLOAT*n, UART_TIMEOUT);
-//
-//	if(err == SP_OK) {
-//		// Read packet
-//		packetToFloats(f, data_packet, n);
-//	}
+	//receivePacket(port, data_packet, BYTES_PER_FLOAT*n);
+	int err = sp_blocking_read(port, data_packet, BYTES_PER_FLOAT*n, UART_TIMEOUT);
 
-	//return err;
-	return 0;
+	if(err == BYTES_PER_FLOAT*n) {
+		// Read packet
+		packetToFloats(f, data_packet, n);
+	}
+	else {
+		for(int i = 0;i < n;i++) {
+			f[n] = 0;
+		}
+	}
+
+	return err;
 }
 
 int serialReceiveString(port_t port, char* string) {
