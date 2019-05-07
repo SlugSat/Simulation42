@@ -119,7 +119,7 @@ int serialReceiveFloats(port_t port, float* f, unsigned int n) {
 		}
 	}
 
-	return err;
+	return err/BYTES_PER_FLOAT;
 }
 
 int serialReceiveString(port_t port, char* string) {

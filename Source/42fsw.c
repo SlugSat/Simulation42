@@ -1055,7 +1055,9 @@ void SlugSatFSW(struct SCType *S)
 	// Send and receive data from flat-sat
 	serialHandshake(serial_port);
 	serialSendFloats(serial_port, sersend, sensorFloats);
-	serialReceiveFloats(serial_port, serrec, actuatorFloats);
+	if(serialReceiveFloats(serial_port, serrec, actuatorFloats) != actuatorFloats) {
+		return;
+	}
 
 	// Receive string from STM32 (for debugging purposes)
 	char string[500];

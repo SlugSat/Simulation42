@@ -6,7 +6,7 @@
   ** This module uses the libserialport library to send and receive data over
   * UART.
   * 
-  * Created by Galen Savidge. Edited 4/13/2019.
+  * Created by Galen Savidge. Edited 5/6/2019.
   ******************************************************************************
   */
 
@@ -23,7 +23,7 @@ typedef struct sp_port* port_t;
 port_t serialInit(void);
 
 /**
- * @brief
+ * @brief	Blocks until a handshake byte is received and then sends back a handshake byte
  * @param	port: the port returned by serialInit()
  * @return	None
  */
@@ -39,16 +39,16 @@ void serialHandshake(port_t port);
 int serialSendFloats(port_t port, float* f, unsigned int n);
 
 /**
- * @brief	Blocking function to receive n floating point numbers from serial
+ * @brief	Blocking function to receive n floating point numbers from serial (with a timeout)
  * @param	port: the port returned by serialInit()
  * @param	f: array of size >= n to hold received floats
  * @param	n: number of floats to be received
- * @return	Always 0 for now
+ * @return	Number of floats received
  */
 int serialReceiveFloats(port_t port, float* f, unsigned int n);
 
 /**
- * @brief	Blocking function to receive a string from serial
+ * @brief	Blocking function to receive a string from serial; exits on timeout or after 300 characters
  * @param	port: the port returned by serialInit()
  * @param	string: char array of size >= strlen + 1 to hold the received string
  * @return	Always 0 for now
