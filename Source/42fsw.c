@@ -1015,7 +1015,7 @@ void SlugSatFSW(struct SCType *S)
 	int actuatorFloats = 6; //number of floats to receive
 	float sersend[sensorFloats], serrec[actuatorFloats]; //serial send and receive
 	float bser[3], sunser[3], gyroser [3]; //Sensor values to send
-	double pwmWhl[3] = {0}, pwmMtb[3] = {0}; //Actuator pwm and torques
+	double pwmWhl[3], pwmMtb[3]; //Actuator pwm and torques
 
 	// Convert sensor data to floats
 	for (int i = 0;i < 3;i++) {
@@ -1058,7 +1058,7 @@ void SlugSatFSW(struct SCType *S)
 	serialReceiveFloats(serial_port, serrec, actuatorFloats);
 
 	// Receive string from STM32 (for debugging purposes)
-	char string[500] = {0};
+	char string[500];
 	serialReceiveString(serial_port, string);
 
 	//Print data to verify transmission
