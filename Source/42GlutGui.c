@@ -901,8 +901,7 @@ void DrawCamHUD(void)
 		ang = (180*ang) / Pi;
 		
 		//Print angle
-		 sprintf(s,"Error: [% 5.4f]",
-			ang);
+		 sprintf(s,"Pointing error: [%5.4f degrees]", ang);
 		 glRasterPos2i(CamWidth-300,65);
 		 DrawBitmapString(GLUT_BITMAP_8_BY_13,s);
 	 
