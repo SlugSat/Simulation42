@@ -1044,7 +1044,7 @@ void SlugSatFSW(struct SCType *S)
 		sersend[i+12] = (float)w_rw[i];
 	}
 
-	// Get Julian date
+	// Find Julian date
 	double JD = AbsTimeToJD(AbsTime);
 	double JD_int;
 	double JD_frac = modf(JD, &JD_int); // Send JD as a sum of two floats to preserve precision
@@ -1052,7 +1052,8 @@ void SlugSatFSW(struct SCType *S)
 	sersend[16] = (float)JD_frac;
 	sersend[17] = (float)SimTime;
 
-	//Send data through serial
+	// Send and receive data from flat-sat
+	serialHandshake(serial_port);
 	serialSendFloats(serial_port, sersend, sensorFloats);
 	serialReceiveFloats(serial_port, serrec, actuatorFloats);
 
@@ -1106,6 +1107,8 @@ void SlugSatFSW(struct SCType *S)
 	for(double t = 0;t < AC->DT;t += sample_dt) {
 		for(int i = 0;i < 3;i++) {
 			vRw[i] = vRwMax*(pwmWhl[i]/100.0); // Get voltage across motor
+			if(vRw[i] > vRwMax) vRw[i] = vRwMax;
+			else if(vRw[i] < -vRwMax) vRw[i] = -vRwMax;
 			rwTrq[i] = (Kt/R)*(vRw[i] - w_rw[i]*Ke); // Find torque from DC motor equation
 			w_rw_dot[i] = rwTrq[i]/AC->Whl[i].J; // Find acceleration from torque
 			w_rw[i] += w_rw_dot[i]*sample_dt; // Integrate to find reaction wheel speed
@@ -1119,16 +1122,24 @@ void SlugSatFSW(struct SCType *S)
 	}
 
 	// Print RW speed
-	printf("\nRW speed:\t");
-	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", S->Whl[i].w);
-	}
+//	printf("\nRW speed:\t");
+//	for(int i = 0;i < 3;i++) {
+//		printf("%4.4e\t", S->Whl[i].w);
+//	}
 
-	// Send torque to achieve the correct change in rotational inertia in the next sim step
-	printf("\nRW torque:\t");
+	// Print RW speed
+//	double bvJ2000[3];
+//	MxV(C_TETE_J2000, AC->bvn, bvJ2000);
+//	printf("\nMag field in J2000:\t");
+//	for(int i = 0;i < 3;i++) {
+//		printf("%4.4e\t", bvJ2000[i]);
+//	}
+
+	// Send torque to achieve the correct changed in rotational inertia in the next sim step
+	//printf("\nRW torque:\t");
 	for(int i = 0;i < 3;i++) {
 		AC->Whl[i].Tcmd = AC->Whl[i].J*(w_rw[i] - w_rw_old[i])/AC->DT;
-		printf("%4.4e\t", S->Whl[i].Trq);
+		//printf("%4.4e\t", S->Whl[i].Trq);
 	}
 	printf("\n\n");
 

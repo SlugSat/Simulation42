@@ -23,6 +23,13 @@ typedef struct sp_port* port_t;
 port_t serialInit(void);
 
 /**
+ * @brief
+ * @param	port: the port returned by serialInit()
+ * @return	None
+ */
+void serialHandshake(port_t port);
+
+/**
  * @brief	Sends n floating point numbers over serial
  * @param	port: the port returned by serialInit()
  * @param	f: array of floats of size >= n to be sent
