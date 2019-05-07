@@ -886,6 +886,27 @@ void DrawCamHUD(void)
          glRasterPos2i(CamWidth-300,65);
          DrawBitmapString(GLUT_BITMAP_8_BY_13,s);
       }
+	  
+	   //Error between Axis
+	  sprintf(s,"  %s",CamShowLabel["Error"]);
+	  glColor4fv(ErrBrightColor);
+	  double errr[3], L [3], B[3], dot[3], ang[3];
+	  int i;
+	  
+		for(i=0;i<3;i++){ //Set L and B axis from POV
+			L[i] = -POV.CL[2][i];
+			B[i] = -POV.B [2][i];
+		}
+		//Find angle between vectors using dot product formula
+		dot = VoV(L, B) \  ( MAG(L) * MAG(B) ); 
+		ang = acos(dot);
+		
+		//Print angle
+         sprintf(s,"View in B: [% 5.4f % 5.4f % 5.4f]",
+            ang[0], ang[1], ang[2]);
+         glRasterPos2i(CamWidth-300,65);
+         DrawBitmapString(GLUT_BITMAP_8_BY_13,s);
+	 
 
 /* .. ProxOps Grid Spacing */
       if (CamShow[PROX_OPS]) {
@@ -5515,6 +5536,11 @@ void InitColors(void)
       BBrightColor[1] = 1.0;
       BBrightColor[2] = 0.0;
       BBrightColor[3] = 1.0;
+	  
+	  ErrBrightColor[0] = 0.5;
+      ErrBrightColor[1] = 0.5;
+      ErrBrightColor[2] = 0.5;
+      ErrBrightColor[3] = 0.5;
 
       BDimColor[0] = 0.0;
       BDimColor[1] = 0.3;
