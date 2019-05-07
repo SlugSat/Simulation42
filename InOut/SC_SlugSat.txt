@@ -28,7 +28,7 @@ FALSE                         ! Include 2nd Order Flex Terms
 1                             ! Number of Bodies
 ================================ Body 0 ================================
 3                             ! Mass
-0.60579  0.01330  0.59753     ! Moments of Inertia (kg-m^2)
+ 0.01151603  0.10225145 0.09528751    ! Moments of Inertia (kg-m^2)
 0.0  0.0  0.0                 ! Products of Inertia (xy,xz,yz)
 0.0  0.0  0.0                 ! Location of mass center, m
 0.0  0.0  0.0                 ! Constant Embedded Momentum (Nms)
