@@ -1093,7 +1093,11 @@ void SlugSatFSW(struct SCType *S)
 	// Convert to double and split into reaction wheels and torque rods
 	for(int i = 0;i < 3;i++) {
 		pwmWhl[i] = (double)serrec[i];	// Reaction Wheel
+		if(pwmWhl[i] > 100.0) pwmWhl[i] = 100.0;
+		else if(pwmWhl[i] < -100.0) pwmWhl[i] = -100.0;
 		pwmMtb[i] = (double)serrec[i+3]; // Magnetic torque bar
+		if(pwmMtb[i] > 100.0) pwmMtb[i] = 100.0;
+		else if(pwmMtb[i] < -100.0) pwmMtb[i] = -100.0;
 	}
 
 
@@ -1109,8 +1113,6 @@ void SlugSatFSW(struct SCType *S)
 	for(double t = 0;t < AC->DT;t += sample_dt) {
 		for(int i = 0;i < 3;i++) {
 			vRw[i] = vRwMax*(pwmWhl[i]/100.0); // Get voltage across motor
-			if(vRw[i] > vRwMax) vRw[i] = vRwMax;
-			else if(vRw[i] < -vRwMax) vRw[i] = -vRwMax;
 			rwTrq[i] = (Kt/R)*(vRw[i] - w_rw[i]*Ke); // Find torque from DC motor equation
 			w_rw_dot[i] = rwTrq[i]/AC->Whl[i].J; // Find acceleration from torque
 			w_rw[i] += w_rw_dot[i]*sample_dt; // Integrate to find reaction wheel speed
@@ -1129,7 +1131,7 @@ void SlugSatFSW(struct SCType *S)
 //		printf("%4.4e\t", S->Whl[i].w);
 //	}
 
-	// Print RW speed
+	// Print mag field in J2000
 //	double bvJ2000[3];
 //	MxV(C_TETE_J2000, AC->bvn, bvJ2000);
 //	printf("\nMag field in J2000:\t");
@@ -1148,7 +1150,7 @@ void SlugSatFSW(struct SCType *S)
 
 	//Convert torque rod PWM to torque & send to AC
 	for(int i = 0;i < 3;i++){
-		AC->MTB[i].Mcmd = k*vMtbMax*pwmMtb[i]/100.0;
+		AC->MTB[i].Mcmd = 10.0*pwmMtb[i]/100.0; //k*vMtbMax*pwmMtb[i]/100.0;
 	}
 }
 /**********************************************************************/

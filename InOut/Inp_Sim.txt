@@ -1,7 +1,7 @@
 <<<<<<<<<<<<<<<<<  42: The Mostly Harmless Simulator  >>>>>>>>>>>>>>>>>
 ************************** Simulation Control **************************
 FAST                            !  Time Mode (FAST, REAL, or EXTERNAL)
-60000.0      10.0                !  Sim Duration, Step Size [sec]
+60000.0      1.0                !  Sim Duration, Step Size [sec]
 100.0                           !  File Output Interval [sec]
 TRUE                            !  Graphics Front End?
 Inp_Cmd.txt                     !  Command Script File Name
@@ -23,10 +23,10 @@ IGRF                            !  Magfield (NONE,DIPOLE,IGRF)
 2   0                           !  Earth Gravity Model N and M (<=18)
 2   0                           !  Mars Gravity Model N and M (<=18)
 2   0                           !  Luna Gravity Model N and M (<=18)
-FALSE   FALSE                   !  Aerodynamic Forces & Torques (Shadows)
-FALSE                           !  Gravity Gradient Torques
-FALSE   FALSE                   !  Solar Pressure Forces & Torques (Shadows)
-FALSE                           !  Gravity Perturbation Forces
+TRUE   TRUE                   !  Aerodynamic Forces & Torques (Shadows)
+TRUE                           !  Gravity Gradient Torques
+TRUE   TRUE                   !  Solar Pressure Forces & Torques (Shadows)
+TRUE                           !  Gravity Perturbation Forces
 FALSE                           !  Passive Joint Torques
 FALSE                           !  Thruster Plume Forces & Torques
 TRUE                           !  RWA Imbalance Forces and Torques

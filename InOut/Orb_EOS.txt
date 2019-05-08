@@ -16,7 +16,7 @@ PA                            !  Use Peri/Apoapsis (PA) or min alt/ecc (AE)
 200.0  2.0                    !  Min Altitude (km), Eccentricity
 51.64                         !  Inclination (deg)
 238.14                        !  Right Ascension of Ascending Node (deg)
-253.30                        !  Argument of Periapsis (deg)
+153.30                        !  Argument of Periapsis (deg)
 0.0                           !  True Anomaly (deg)
 0.0  0.0  0.0                 !  RV Initial Position (km)
 0.0  0.0  0.0                 !  RV Initial Velocity (km/sec)
