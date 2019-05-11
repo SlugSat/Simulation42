@@ -1063,28 +1063,57 @@ void SlugSatFSW(struct SCType *S)
 	char string[500];
 	serialReceiveString(serial_port, string);
 
-	//Print data to verify transmission
+	//Print TX data to verify transmission	
 	printf("\nTX:\n");
-	for(int i = 0;i < sensorFloats;i++) {
-		printf("%16.4f", sersend[i]);
-		if((i+1)%3 == 0) {
-			printf("\n");
-		}
-		else {
-			printf(" ");
-		}
+	// Print mag field
+	printf("\nMag Field (micro Tesla):\t");
+	for(int i = 0;i < 3;i++) {
+		printf("%4.4e\t", sersend[i];
 	}
-
-	printf("\nRX:\n");
-	for(int i = 0;i < actuatorFloats;i++) {
-		printf("%16.4f", serrec[i]);
-		if((i+1)%3 == 0) {
-			printf("\n");
-		}
-		else {
-			printf(" ");
-		}
+	
+		// Print gyro
+	printf("\nGyro (rad/sec):\t");
+	for(int i = 0;i < 3;i++) {
+		printf("%4.4e\t", sersend[i+3];
 	}
+	
+	// Print solar vector
+	printf("\nSolar Vector (normalized): \t");
+	for(int i = 0;i < 3;i++) {
+		printf("%4.4e\t", sersend[i+6];
+	}
+	
+	// Print Pos J2000
+	printf("\nPos J2000 (km):\t");
+	for(int i = 0;i < 3;i++) {
+		printf("%4.4e\t", sersend[i+9];
+	}
+	
+	// Print w_rw
+	printf("\nw_rw (rad/sec):\t");
+	for(int i = 0;i < 3;i++) {
+		printf("%4.4e\t", sersend[i+12];
+	}
+	
+	// Print time
+	printf("\nTime (JD_int), (JD_frac), (SimTime):\t");
+	for(int i = 0;i < 3;i++) {
+		printf("%4.4e\t", sersend[i+15];
+	
+	
+	//Print RX data
+	printf("\nRX:\n");	
+	printf("\nReaction Wheel PWM\t");
+	for(int i = 0;i < 3;i++) {
+	printf("%4.4e\t", serrec[i];
+	}
+	
+	printf("\nTorque Rod PWM\t");
+	for(int i = 0;i < 3;i++) {
+	printf("%4.4e\t", serrec[i+3];
+	}	
+			
+	
 
 	if(strlen(string) > 0) {
 		printf("\nPRINT FROM STM32\n%s\nEND PRINT FROM STM32\n", string);
