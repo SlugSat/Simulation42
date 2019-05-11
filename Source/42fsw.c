@@ -1150,7 +1150,7 @@ void SlugSatFSW(struct SCType *S)
 
 	//Convert torque rod PWM to torque & send to AC
 	for(int i = 0;i < 3;i++){
-		AC->MTB[i].Mcmd = 10.0*pwmMtb[i]/100.0; //k*vMtbMax*pwmMtb[i]/100.0;
+		AC->MTB[i].Mcmd = 2.0*pwmMtb[i]/100.0; //k*vMtbMax*pwmMtb[i]/100.0;
 	}
 }
 /**********************************************************************/
