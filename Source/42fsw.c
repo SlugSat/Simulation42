@@ -1061,7 +1061,7 @@ void SlugSatFSW(struct SCType *S)
 
 	// Receive string from STM32 (for debugging purposes)
 	char string[500];
-	serialReceiveString(serial_port, string);
+	int read_string_err = serialReceiveString(serial_port, (uint8_t*)string);
 
 	//Print TX data to verify transmission	
 	printf("\nTX:\n");
@@ -1071,7 +1071,7 @@ void SlugSatFSW(struct SCType *S)
 		printf("%4.4e\t", sersend[i]);
 	}
 	
-		// Print gyro
+	// Print gyro
 	printf("\nGyro (rad/sec):\t\t\t");
 	for(int i = 0;i < 3;i++) {
 		printf("%4.4e\t", sersend[i+3]);
@@ -1115,7 +1115,7 @@ void SlugSatFSW(struct SCType *S)
 			
 	
 
-	if(strlen(string) > 0) {
+	if(read_string_err == 0 && strlen(string) > 0) {
 		printf("\n\nPRINT FROM STM32\n%s\nEND PRINT FROM STM32\n", string);
 	}
 

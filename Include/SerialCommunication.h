@@ -11,6 +11,7 @@
   */
 
 #include <libserialport.h>
+#include <stdint.h>
 
 // Pointer to a serial port
 typedef struct sp_port* port_t;
@@ -53,4 +54,4 @@ int serialReceiveFloats(port_t port, float* f, unsigned int n);
  * @param	string: char array of size >= strlen + 1 to hold the received string
  * @return	Always 0 for now
  */
-int serialReceiveString(port_t port, char* string);
+int serialReceiveString(port_t port, uint8_t* string);
