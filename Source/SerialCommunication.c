@@ -127,7 +127,7 @@ int serialReceiveString(port_t port, char* string) {
 	do {
 		while(sp_input_waiting(port) < 1);
 		i++;
-		if(sp_blocking_read(port, &string[i], 1, UART_TIMEOUT) <= 0) return 1;
-	} while(string[i] != '\0' && i < 300); // Wait for null character
+		if(sp_blocking_read(port, &string[i], 1, UART_TIMEOUT) <= 0 || string[i] == HANDSHAKE_BYTE) return 1;
+	} while(string[i] != '\0' && i < 1000); // Wait for null character
 	return 0;
 }
