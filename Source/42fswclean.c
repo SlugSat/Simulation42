@@ -986,77 +986,199 @@ void FindAppendageInertia(long Ig, struct SCType *S,double Iapp[3])
 }
 /**********************************************************************/
 /*  SlugSat Flight Software      */
+/*  This simple control law is suitable for rapid prototyping.        */
 void SlugSatFSW(struct SCType *S)
 {
+	// Check if the STM32 board is plugged in
+	if(serial_port == NULL) {
+		return;
+	}
+
 	//Variables from 42
 	struct AcType *AC; //Attitude control type
-	struct BodyType *B; //Body type
-	struct CmdType *Cmd; //Command type
-		
+
 	//Actuator variables
-	double Kt = 7.13e-3, Ke = 7.82e-5, R = 92.7; // Reaction wheel motor constants
-	static double w_rw_old[3] = {0, 0, 0}; // Reaction wheel speed last time
-	double k = .7597; // Torque rod constant (based on physical parameters)
-	int vMtbMax = 3, vRwMax = 8; // Voltage rails
+	static double w_rw[3] = {0, 0, 0}; // Reaction wheel speed
+	double w_rw_dot[3];
+	double k = 0.7597; // Torque rod constant (based on physical parameters)
+	int vRwMax = 8.0, vMtbMax = 3.3; // Voltage rails
 
-	//Copies values from S(Spacecraft) to AC
+	// Get AC pointer
 	AC = &S->AC;
-	Cmd = &AC->Cmd;
-	
-	//Input / Output to serial
-	int sensorFloats = 9;//number of floats to send
-	int actuatorFloats = 6;//number of floats to receive
-	double whlTrqMax, mtbTrqMax = 1e-5; //Max torques
+
+
+	// Input / Output to serial
+	int sensorFloats = 18; //number of floats to send
+	int actuatorFloats = 6; //number of floats to receive
 	float sersend[sensorFloats], serrec[actuatorFloats]; //serial send and receive
-	float bser[3], sunser[3], gyroser [3], brec[3], sunrec[3], gyrorec[3]; //Sensor values to send
-	double pwmWhl[3], pwmMtb[3], whlTrq[3], mtbTrq[3]; //Actuator pwm and torques
+	float bser[3], sunser[3], gyroser [3]; //Sensor values to send
+	double pwmWhl[3], pwmMtb[3]; //Actuator pwm and torques
 
-	//Convert sensor data to floats
-	for (int i=0;i<3;i++) {
-	 bser[i] = (100000) *( SC[0].bvb[i]); //Convert to micro tesla
-	 bser[i] = (float)bser[i]; //Convert to float
-	 gyroser[i] = (float) SC[0].B[0].wn[i]; //Gyro (radians per second)
-	 sunser[i] =(float) SC[0].AC.svb[i]; //Solar vector
+	// Convert sensor data to floats
+	for (int i = 0;i < 3;i++) {
+		bser[i] = (1e6)*( SC[0].bvb[i]); //Magnetic field in micro Tesla (body frame)
+		bser[i] = (float)bser[i]; //Convert to float
+		gyroser[i] = (float)SC[0].B[0].wn[i]; //Gyro (radians per second)
+		if(SC[0].AC.SunValid) {
+			sunser[i] = (float)SC[0].AC.svb[i]; //Solar vector (body frame)
+		}
+		else {
+			sunser[i] = 0; // Simulate darkness
+		}
 	}
 
-	//Compile data into single float
-	for (i=0;i<3;i++) {
-	sersend[i] =bser[i];
-	sersend[i+3] = gyroser[i];
-	sersend[i+6] = sunser[i];
+	// Find position in J2000
+	double C_TEME_TETE[3][3], C_TETE_J2000[3][3], posJ2000[3];
+	HiFiEarthPrecNute(JulDay, C_TEME_TETE, C_TETE_J2000);
+	MxV(C_TETE_J2000, Orb[0].PosN, posJ2000);
+
+	// Compile data into single float
+	for (int i = 0;i < 3;i++) {
+		sersend[i] = bser[i];
+		sersend[i+3] = gyroser[i];
+		sersend[i+6] = sunser[i];
+		sersend[i+9] = (float)posJ2000[i];
+		sersend[i+12] = (float)w_rw[i];
 	}
 
-	//Send data through serial
-	serialSendFloats(serial_port, sersend, sensorFloats); 
-	serialReceiveFloats(serial_port, serrec, actuatorFloats);
+	// Find Julian date
+	double JD = AbsTimeToJD(AbsTime);
+	double JD_int;
+	double JD_frac = modf(JD, &JD_int); // Send JD as a sum of two floats to preserve precision
+	sersend[15] = (float)JD_int;
+	sersend[16] = (float)JD_frac;
+	sersend[17] = (float)SimTime;
+
+	// Send and receive data from flat-sat
+	serialHandshake(serial_port);
+	serialSendFloats(serial_port, sersend, sensorFloats);
+	if(serialReceiveFloats(serial_port, serrec, actuatorFloats) != actuatorFloats) {
+		return;
+	}
+
+	// Receive string from STM32 (for debugging purposes)
+	char string[500];
+	int read_string_err = serialReceiveString(serial_port, (uint8_t*)string);
+
+	//Print TX data to verify transmission	
+	printf("\nTX:\n");
+	// Print mag field
+	printf("\nMag Field (micro Tesla):\t");
+	for(int i = 0;i < 3;i++) {
+		printf("%4.4e\t", sersend[i]);
+	}
 	
-	//Print data to verify transmission
-	printf("\n Sent B:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n",
-		 sersend[0], sersend[1], sersend[2], sersend[3], sersend[4],sersend[5], sersend[6], sersend[7], sersend[8]);
-
-	printf("\n Received B:\n%4.4f\t%4.4f\t%4.4f\n \n%4.4f\t%4.4f\t%4.4f\n",
-		 serrec[0], serrec[1], serrec[2], serrec[3], serrec[4],serrec[5]);
-		
-	//Convert to double and split into reaction wheels and torque rods
-	for(i=0;i<3;i++) {
-		pwmWhl[i] = (double)serrec[i];	//Reaction Wheel
-		pwmMTB[i] = (double)serrec[i+3]; //Magnetic torque bar
+	// Print gyro
+	printf("\nGyro (rad/sec):\t\t\t");
+	for(int i = 0;i < 3;i++) {
+		printf("%4.4e\t", sersend[i+3]);
 	}
-
-	//Convert reaction wheel pwm to torque & send to AC
-	float vRw[3], rwTrq[3]; //rw voltage and torque
-	for(i=0;i<3;i++) {
-		vRw[i] = vRwMax * (pwmWhl[i] /100);
-		rwTrq[i] = Kt/R*(vRw[i] - AC->Whl[i].H * Ke);
-		AC->Whl[i].Tcmd = rwTrq[i]
+	
+	// Print solar vector
+	printf("\nSolar Vector (normalized): \t");
+	for(int i = 0;i < 3;i++) {
+		printf("%4.4e\t", sersend[i+6]);
 	}
-
-	//Convert torque rod pwm to torque & send to AC
-	for(i=0;i<3;i++){
-		mtbTrq[i] = mtbTrqMax * pwmMTB[i]/100.0;
-		AC->MTB[i].Mcmd = mtbTrq[i];
+	
+	// Print Pos J2000
+	printf("\nPos J2000 (km):\t\t\t");
+	for(int i = 0;i < 3;i++) {
+		printf("%4.4e\t", sersend[i+9]);
+	}
+	
+	// Print w_rw
+	printf("\nw_rw (rad/sec):\t\t\t");
+	for(int i = 0;i < 3;i++) {
+		printf("%4.4e\t", sersend[i+12]);
+	}
+	
+	// Print time
+	printf("\nTime:\t\t\t\t");
+	for(int i = 0;i < 3;i++) {
+		printf("%4.4e\t", sersend[i+15]);
+	}
+	
+	//Print RX data
+	printf("\n\nRX:\n");
+	printf("\nReaction Wheel PWM\t");
+	for(int i = 0;i < 3;i++) {
+	printf("%4.4e\t", serrec[i]);
+	}
+	
+	printf("\nTorque Rod PWM\t\t");
+	for(int i = 0;i < 3;i++) {
+	printf("%4.4e\t", serrec[i+3]);
 	}	
+			
+	
 
+	if(read_string_err == 0 && strlen(string) > 0) {
+		printf("\n\nPRINT FROM STM32\n%s\nEND PRINT FROM STM32\n", string);
+	}
+
+	// Convert to double and split into reaction wheels and torque rods
+	for(int i = 0;i < 3;i++) {
+		pwmWhl[i] = (double)serrec[i];	// Reaction Wheel
+		if(pwmWhl[i] > 100.0) pwmWhl[i] = 100.0;
+		else if(pwmWhl[i] < -100.0) pwmWhl[i] = -100.0;
+		pwmMtb[i] = (double)serrec[i+3]; // Magnetic torque bar
+		if(pwmMtb[i] > 100.0) pwmMtb[i] = 100.0;
+		else if(pwmMtb[i] < -100.0) pwmMtb[i] = -100.0;
+	}
+
+
+	// Convert reaction wheel PWM to torque & send to AC
+	static double Kt = 0.00713, Ke = 0.00713332454, R = 92.7; // Reaction wheel motor constants
+	double sample_dt = 0.1; // Oversampling dt
+	double vRw[3], rwTrq[3]; // Reaction wheel voltage and torque
+
+	// Save old RW speed
+	double w_rw_old[3] = {w_rw[0], w_rw[1], w_rw[2]};
+
+	// Oversample reaction wheel dynamics
+	for(double t = 0;t < AC->DT;t += sample_dt) {
+		for(int i = 0;i < 3;i++) {
+			vRw[i] = vRwMax*(pwmWhl[i]/100.0); // Get voltage across motor
+			rwTrq[i] = (Kt/R)*(vRw[i] - w_rw[i]*Ke); // Find torque from DC motor equation
+			w_rw_dot[i] = rwTrq[i]/AC->Whl[i].J; // Find acceleration from torque
+			w_rw[i] += w_rw_dot[i]*sample_dt; // Integrate to find reaction wheel speed
+		}
+	}
+
+	// Print Craft speed
+	printf("\nCraft speed:\t");
+	for(int i = 0;i < 3;i++) {
+		printf("%4.4e\t", S->B[0].wn[i]);
+	}
+
+	// Print RW speed
+//	printf("\nRW speed:\t");
+//	for(int i = 0;i < 3;i++) {
+//		printf("%4.4e\t", S->Whl[i].w);
+//	}
+
+	// Print mag field in J2000
+//	double bvJ2000[3];
+//	MxV(C_TETE_J2000, AC->bvn, bvJ2000);
+//	printf("\nMag field in J2000:\t");
+//	for(int i = 0;i < 3;i++) {
+//		printf("%4.4e\t", bvJ2000[i]);
+//	}
+
+	// Send torque to achieve the correct changed in rotational inertia in the next sim step
+	//printf("\nRW torque:\t");
+	for(int i = 0;i < 3;i++) {
+		AC->Whl[i].Tcmd = AC->Whl[i].J*(w_rw[i] - w_rw_old[i])/AC->DT;
+		//printf("%4.4e\t", S->Whl[i].Trq);
+	}
+	printf("\n\n");
+
+
+	//Convert torque rod PWM to torque & send to AC
+	for(int i = 0;i < 3;i++){
+		AC->MTB[i].Mcmd = 2.0*pwmMtb[i]/100.0; //k*vMtbMax*pwmMtb[i]/100.0;
+	}
+}
       
 /**********************************************************************/
 /* Notional two-body momentum-biased Earth pointer                    */
