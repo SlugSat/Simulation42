@@ -1068,55 +1068,55 @@ void SlugSatFSW(struct SCType *S)
 	// Print mag field
 	printf("\nMag Field (micro Tesla):\t");
 	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", sersend[i];
+		printf("%4.4e\t", sersend[i]);
 	}
 	
 		// Print gyro
-	printf("\nGyro (rad/sec):\t");
+	printf("\nGyro (rad/sec):\t\t\t");
 	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", sersend[i+3];
+		printf("%4.4e\t", sersend[i+3]);
 	}
 	
 	// Print solar vector
 	printf("\nSolar Vector (normalized): \t");
 	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", sersend[i+6];
+		printf("%4.4e\t", sersend[i+6]);
 	}
 	
 	// Print Pos J2000
-	printf("\nPos J2000 (km):\t");
+	printf("\nPos J2000 (km):\t\t\t");
 	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", sersend[i+9];
+		printf("%4.4e\t", sersend[i+9]);
 	}
 	
 	// Print w_rw
-	printf("\nw_rw (rad/sec):\t");
+	printf("\nw_rw (rad/sec):\t\t\t");
 	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", sersend[i+12];
+		printf("%4.4e\t", sersend[i+12]);
 	}
 	
 	// Print time
-	printf("\nTime (JD_int), (JD_frac), (SimTime):\t");
+	printf("\nTime:\t\t\t\t");
 	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", sersend[i+15];
-	
-	
-	//Print RX data
-	printf("\nRX:\n");	
-	printf("\nReaction Wheel PWM\t");
-	for(int i = 0;i < 3;i++) {
-	printf("%4.4e\t", serrec[i];
+		printf("%4.4e\t", sersend[i+15]);
 	}
 	
-	printf("\nTorque Rod PWM\t");
+	//Print RX data
+	printf("\n\nRX:\n");
+	printf("\nReaction Wheel PWM\t");
 	for(int i = 0;i < 3;i++) {
-	printf("%4.4e\t", serrec[i+3];
+	printf("%4.4e\t", serrec[i]);
+	}
+	
+	printf("\nTorque Rod PWM\t\t");
+	for(int i = 0;i < 3;i++) {
+	printf("%4.4e\t", serrec[i+3]);
 	}	
 			
 	
 
 	if(strlen(string) > 0) {
-		printf("\nPRINT FROM STM32\n%s\nEND PRINT FROM STM32\n", string);
+		printf("\n\nPRINT FROM STM32\n%s\nEND PRINT FROM STM32\n", string);
 	}
 
 	// Convert to double and split into reaction wheels and torque rods
