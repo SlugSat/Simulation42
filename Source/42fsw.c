@@ -993,14 +993,17 @@ void SlugSatFSW(struct SCType *S)
 		return;
 	}
 
+
 	//Variables from 42
 	struct AcType *AC; //Attitude control type
+
 
 	//Actuator variables
 	static double w_rw[3] = {0, 0, 0}; // Reaction wheel speed
 	double w_rw_dot[3];
 	double k = 0.7597; // Torque rod constant (based on physical parameters)
 	int vRwMax = 8.0, vMtbMax = 3.3; // Voltage rails
+
 
 	// Get AC pointer
 	AC = &S->AC;
@@ -1012,6 +1015,7 @@ void SlugSatFSW(struct SCType *S)
 	float sersend[sensorFloats], serrec[actuatorFloats]; //serial send and receive
 	float bser[3], sunser[3], gyroser [3]; //Sensor values to send
 	double pwmWhl[3], pwmMtb[3]; //Actuator pwm and torques
+
 
 	// Convert sensor data to floats
 	for (int i = 0;i < 3;i++) {
@@ -1031,6 +1035,7 @@ void SlugSatFSW(struct SCType *S)
 	HiFiEarthPrecNute(JulDay, C_TEME_TETE, C_TETE_J2000);
 	MxV(C_TETE_J2000, Orb[0].PosN, posJ2000);
 
+
 	// Compile data into single float
 	for (int i = 0;i < 3;i++) {
 		sersend[i] = bser[i];
@@ -1048,6 +1053,7 @@ void SlugSatFSW(struct SCType *S)
 	sersend[16] = (float)JD_frac;
 	sersend[17] = (float)SimTime;
 
+
 	// Send and receive data from flat-sat
 	serialHandshake(serial_port);
 	serialSendFloats(serial_port, sersend, sensorFloats);
@@ -1061,6 +1067,7 @@ void SlugSatFSW(struct SCType *S)
 
 	//Print TX data to verify transmission	
 	printf("\nTX:\n");
+	
 	// Print mag field
 	printf("\nMag Field (micro Tesla):\t");
 	for(int i = 0;i < 3;i++) {
@@ -1099,17 +1106,19 @@ void SlugSatFSW(struct SCType *S)
 	
 	//Print RX data
 	printf("\n\nRX:\n");
+	
+	//Reaction Wheel PWM
 	printf("\nReaction Wheel PWM\t");
 	for(int i = 0;i < 3;i++) {
 	printf("%4.2f\t", serrec[i]);
 	}
 	
+	//Torque Rod PWM
 	printf("\nTorque Rod PWM\t\t");
 	for(int i = 0;i < 3;i++) {
 	printf("%4.2f\t", serrec[i+3]);
 	}	
 			
-	
 
 	if(read_string_err == 0 && strlen(string) > 0) {
 		printf("\n\nPRINT FROM STM32\n%s\nEND PRINT FROM STM32\n", string);
@@ -1131,8 +1140,10 @@ void SlugSatFSW(struct SCType *S)
 	double sample_dt = 0.1; // Oversampling dt
 	double vRw[3], rwTrq[3]; // Reaction wheel voltage and torque
 
+
 	// Save old RW speed
 	double w_rw_old[3] = {w_rw[0], w_rw[1], w_rw[2]};
+
 
 	// Oversample reaction wheel dynamics
 	for(double t = 0;t < AC->DT;t += sample_dt) {
@@ -1150,20 +1161,6 @@ void SlugSatFSW(struct SCType *S)
 		printf("%4.4e\t", S->B[0].wn[i]);
 	}
 
-	// Print RW speed
-//	printf("\nRW speed:\t");
-//	for(int i = 0;i < 3;i++) {
-//		printf("%4.4e\t", S->Whl[i].w);
-//	}
-
-	// Print mag field in J2000
-//	double bvJ2000[3];
-//	MxV(C_TETE_J2000, AC->bvn, bvJ2000);
-//	printf("\nMag field in J2000:\t");
-//	for(int i = 0;i < 3;i++) {
-//		printf("%4.4e\t", bvJ2000[i]);
-//	}
-
 	// Send torque to achieve the correct changed in rotational inertia in the next sim step
 	//printf("\nRW torque:\t");
 	for(int i = 0;i < 3;i++) {
@@ -1177,7 +1174,41 @@ void SlugSatFSW(struct SCType *S)
 	for(int i = 0;i < 3;i++){
 		AC->MTB[i].Mcmd = 2.0*pwmMtb[i]/100.0; //k*vMtbMax*pwmMtb[i]/100.0;
 	}
+	
+	
+
+	//Calculate Power 
+	float detumblePower, reorientPower, stabilizationPower, trRes, rwRes;
+	char state[10];
+	char detumble[] = "Detumble", reorient[] = "Reorient", stabilize[] = "Stabilize";
+	
+	//Find state
+	sscanf(string, "%s", state);
+	
+	//Actuator parameters, VRwMax = 8.0, vMtbMax = 3.3; Voltage rails
+	trRes = 15.0; //Estimated Torque rod resistance (Ohms) 
+	rwRes = 92.7; //Faulhaber 1509 terminal resistance
+	
+	//Detumbling power
+	if (strcmp(state, detumble == 0)){
+		detumblePower += ((pwmMtb/100) * vMtbMax)^2 /trRes + ((pwmWhl/100) * vRwMax)^2 /rwRes;			
+	}	
+	
+	//Orientation Power
+	if (strcmp(state, reorient == 0)){		
+		reorientPower += ((pwmMtb/100) * vMtbMax)^2 /trRes + ((pwmWhl/100) * vRwMax)^2 /rwRes;
+	}
+	
+	//Stabilization Power
+	if (strcmp(state, stabilize == 0)){	
+		stabilizationPower += ((pwmMtb/100) * vMtbMax)^2 /trRes + ((pwmWhl/100) * vRwMax)^2 /rwRes;
+	}
+	
+	//Print out power consumption for each state
+	printf("\nDetumbling Power: 4.2%f :\t \nReorientation Power: 4.2%f\t \nStabilization Power: 4.2%f\t", detumblePower, reorientPower, stabilizationPower);
+		
 }
+
 
 /**********************************************************************/
 #ifdef _AC_STANDALONE_
@@ -1201,9 +1232,7 @@ void FlightSoftWare(struct SCType *S)
       case SlugSat_FSW:
               SlugSatFSW(S);
                break;
-
-
-
+			   
       }
 }
 
