@@ -1176,36 +1176,78 @@ void SlugSatFSW(struct SCType *S)
 	}
 	
 	
-
-	//Calculate Power 
-	float detumblePower, reorientPower, stabilizationPower, trRes, rwRes;
-	char state[10];
+	//Calculate Power
+	double trRes, rwRes;
+	char s1[10], s2[10], state[10];
 	char detumble[] = "Detumble", reorient[] = "Reorient", stabilize[] = "Stabilize";
 	
+	static int init_run = 0;
+	static double detumblePower, reorientPower, stabilizationPower,rwPower, trPower, pTotal;
+	if(init_run ==0){
+		detumblePower =0;
+		reorientPower =0;
+		stabilizationPower =0;
+		rwPower =0;
+		trPower = 0;
+		pTotal = 0;
+		init_run =1;
+	}
+
 	//Find state
-	sscanf(string, "%s", state);
+	sscanf(string, "%s, %s, %s", s1, s2, state);
 	
 	//Actuator parameters, VRwMax = 8.0, vMtbMax = 3.3; Voltage rails
 	trRes = 15.0; //Estimated Torque rod resistance (Ohms) 
 	rwRes = 92.7; //Faulhaber 1509 terminal resistance
 	
-	//Detumbling power
-	if (strcmp(state, detumble == 0)){
-		detumblePower += ((pwmMtb/100) * vMtbMax)^2 /trRes + ((pwmWhl/100) * vRwMax)^2 /rwRes;			
-	}	
-	
+	/*//Detumbling power
+	if (strcmp(detumble, state) == 0){
+		for(int i = 0;i < 3;i++) {
+		detumblePower += (fabs(pwmMtb[1]) / 100.0 * vMtbMax * fabs(pwmMtb[1]) / 100.0 * vMtbMax) /trRes +
+				 (fabs(pwmWhl[1]) /100.0* vRwMax * fabs(pwmWhl[1]) /100.0 * vRwMax) / rwRes;
+		}
+	}
 	//Orientation Power
-	if (strcmp(state, reorient == 0)){		
-		reorientPower += ((pwmMtb/100) * vMtbMax)^2 /trRes + ((pwmWhl/100) * vRwMax)^2 /rwRes;
+	if (strcmp(reorient, state) == 0){
+		for(int i = 0;i < 3;i++) {
+		reorientPower += (fabs(pwmMtb[1]) / 100.0 * vMtbMax * fabs(pwmMtb[1]) / 100.0 * vMtbMax) /trRes +
+				 (fabs(pwmWhl[1]) /100.0* vRwMax * fabs(pwmWhl[1]) /100.0 * vRwMax) / rwRes;
+		}
 	}
 	
 	//Stabilization Power
-	if (strcmp(state, stabilize == 0)){	
-		stabilizationPower += ((pwmMtb/100) * vMtbMax)^2 /trRes + ((pwmWhl/100) * vRwMax)^2 /rwRes;
+	if (strcmp(stabilize, state) == 0){
+		for(int i = 0;i < 3;i++) {
+		stabilizationPower += (fabs(pwmMtb[1]) / 100.0 * vMtbMax * fabs(pwmMtb[1]) / 100.0 * vMtbMax) /trRes +
+				 (fabs(pwmWhl[1]) /100.0* vRwMax * fabs(pwmWhl[1]) /100.0 * vRwMax) / rwRes;
+		}
+	}*/
+
+	/*//Print out power consumption for each state
+		printf("\nDetumbling Power: %3.3f\t \nReorientation Power: %3.3f\t \nStabilization Power: %3.3f\t",
+				detumblePower, reorientPower, stabilizationPower);
+	*/
+	//Reaction Wheel Power
+	for(int i = 0;i < 3;i++) {
+	rwPower +=  (fabs(pwmWhl[i]) /100.0* vRwMax * fabs(pwmWhl[i]) /100.0 * vRwMax) / rwRes;
 	}
-	
-	//Print out power consumption for each state
-	printf("\nDetumbling Power: 4.2%f :\t \nReorientation Power: 4.2%f\t \nStabilization Power: 4.2%f\t", detumblePower, reorientPower, stabilizationPower);
+	printf("\nReaction Wheel Power:\t %3.3f", rwPower);
+
+	//Torque Rod Power
+	for(int i = 0;i < 3;i++) {
+	trPower +=  (fabs(pwmMtb[i]) / 100.0 * vMtbMax * fabs(pwmMtb[i]) / 100.0 * vMtbMax) /trRes;
+	}
+	printf("\nTorque Rod Power:\t %3.3f", trPower);
+
+	//Total Power
+	for(int i = 0;i < 3;i++) {
+	pTotal  += (fabs(pwmMtb[i]) / 100.0 * vMtbMax * fabs(pwmMtb[i]) / 100.0 * vMtbMax) /trRes +
+				 (fabs(pwmWhl[i]) /100.0* vRwMax * fabs(pwmWhl[i]) /100.0 * vRwMax) / rwRes;
+	}
+	printf("\nTotal Power:\t %3.3f\n", pTotal);
+
+
+
 		
 }
 
