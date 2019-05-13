@@ -1101,12 +1101,12 @@ void SlugSatFSW(struct SCType *S)
 	printf("\n\nRX:\n");
 	printf("\nReaction Wheel PWM\t");
 	for(int i = 0;i < 3;i++) {
-	printf("%4.4e\t", serrec[i]);
+	printf("%4.2f\t", serrec[i]);
 	}
 	
 	printf("\nTorque Rod PWM\t\t");
 	for(int i = 0;i < 3;i++) {
-	printf("%4.4e\t", serrec[i+3]);
+	printf("%4.2f\t", serrec[i+3]);
 	}	
 			
 	
@@ -1118,11 +1118,11 @@ void SlugSatFSW(struct SCType *S)
 	// Convert to double and split into reaction wheels and torque rods
 	for(int i = 0;i < 3;i++) {
 		pwmWhl[i] = (double)serrec[i];	// Reaction Wheel
-		if(pwmWhl[i] > 100.0) pwmWhl[i] = 100.0;
-		else if(pwmWhl[i] < -100.0) pwmWhl[i] = -100.0;
+		if(pwmWhl[i] > 50.0) pwmWhl[i] = 50.0;
+		else if(pwmWhl[i] < -50.0) pwmWhl[i] = -50.0;
 		pwmMtb[i] = (double)serrec[i+3]; // Magnetic torque bar
-		if(pwmMtb[i] > 100.0) pwmMtb[i] = 100.0;
-		else if(pwmMtb[i] < -100.0) pwmMtb[i] = -100.0;
+		if(pwmMtb[i] > 50.0) pwmMtb[i] = 100.0;
+		else if(pwmMtb[i] < -50.0) pwmMtb[i] = -50.0;
 	}
 
 
