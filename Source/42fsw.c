@@ -1130,8 +1130,8 @@ void SlugSatFSW(struct SCType *S)
 		if(pwmWhl[i] > 50.0) pwmWhl[i] = 50.0;
 		else if(pwmWhl[i] < -50.0) pwmWhl[i] = -50.0;
 		pwmMtb[i] = (double)serrec[i+3]; // Magnetic torque bar
-		if(pwmMtb[i] > 50.0) pwmMtb[i] = 100.0;
-		else if(pwmMtb[i] < -50.0) pwmMtb[i] = -50.0;
+		if(pwmMtb[i] > 100.0) pwmMtb[i] = 100.0;
+		else if(pwmMtb[i] < -100.0) pwmMtb[i] = -100.0;
 	}
 
 
@@ -1205,18 +1205,18 @@ void SlugSatFSW(struct SCType *S)
 		double v = vRwMax*fabs(pwmWhl[i])/100.0 - w_rw[i]*Ke;
 		rwPower += v*v / rwRes;
 	}
-	printf("\nReaction Wheel Power:\t %3.3f [W]", rwPower);
+	printf("\nReaction Wheel Power:\t%6.3f [mW]", 1000*rwPower);
 
 	//Torque Rod Power
 	for(int i = 0;i < 3;i++) {
-		double v = fabs(pwmMtb[i]) / 100.0 * vMtbMax;
+		double v = vMtbMax*fabs(pwmMtb[i]) / 100.0;
 		trPower += v*v / trRes;
 	}
-	printf("\nTorque Rod Power:\t %3.3f [W]", trPower);
+	printf("\nTorque Rod Power:\t%6.3f [mW]", 1000*trPower);
 
 	//Total Power
 	totalPower = rwPower + trPower;
-	printf("\nTotal Power:\t %3.3f [W]\n", totalPower);
+	printf("\nTotal Power:\t\t%6.3f [mW]\n", 1000*totalPower);
 
 	//Detumbling power
 	if (strcmp(detumble, state) == 0){
