@@ -1002,7 +1002,7 @@ void SlugSatFSW(struct SCType *S)
 	static double w_rw[3] = {0, 0, 0}; // Reaction wheel speed
 	double w_rw_dot[3];
 	double k = 0.7597; // Torque rod constant (based on physical parameters)
-	int vRwMax = 8.0, vMtbMax = 3.3; // Voltage rails
+	int rwVmax = 8.0, trVmax = 3.3; // Voltage rails
 
 
 	// Get AC pointer
@@ -1012,21 +1012,21 @@ void SlugSatFSW(struct SCType *S)
 	// Input / Output to serial
 	int sensorFloats = 18; //number of floats to send
 	int actuatorFloats = 6; //number of floats to receive
-	float sersend[sensorFloats], serrec[actuatorFloats]; //serial send and receive
-	float bser[3], sunser[3], gyroser [3]; //Sensor values to send
-	double pwmWhl[3], pwmMtb[3]; //Actuator pwm and torques
+	float serSend[sensorFloats], serRec[actuatorFloats]; //serial send and receive
+	float bSer[3], sunSer[3], gyroSer [3]; //Sensor values to send
+	double rwPWM[3], trPWM[3]; //Actuator pwm and torques
 
 
 	// Convert sensor data to floats
 	for (int i = 0;i < 3;i++) {
-		bser[i] = (1e6)*( SC[0].bvb[i]); //Magnetic field in micro Tesla (body frame)
-		bser[i] = (float)bser[i]; //Convert to float
-		gyroser[i] = (float)SC[0].B[0].wn[i]; //Gyro (radians per second)
+		bSer[i] = (1e6)*( SC[0].bvb[i]); //Magnetic field in micro Tesla (body frame)
+		bSer[i] = (float)bSer[i]; //Convert to float
+		gyroSer[i] = (float)SC[0].B[0].wn[i]; //Gyro (radians per second)
 		if(SC[0].AC.SunValid) {
-			sunser[i] = (float)SC[0].AC.svb[i]; //Solar vector (body frame)
+			sunSer[i] = (float)SC[0].AC.svb[i]; //Solar vector (body frame)
 		}
 		else {
-			sunser[i] = 0; // Simulate darkness
+			sunSer[i] = 0; // Simulate darkness
 		}
 	}
 
@@ -1038,26 +1038,26 @@ void SlugSatFSW(struct SCType *S)
 
 	// Compile data into single float
 	for (int i = 0;i < 3;i++) {
-		sersend[i] = bser[i];
-		sersend[i+3] = gyroser[i];
-		sersend[i+6] = sunser[i];
-		sersend[i+9] = (float)posJ2000[i];
-		sersend[i+12] = (float)w_rw[i];
+		serSend[i] = bSer[i];
+		serSend[i+3] = gyroSer[i];
+		serSend[i+6] = sunSer[i];
+		serSend[i+9] = (float)posJ2000[i];
+		serSend[i+12] = (float)w_rw[i];
 	}
 
 	// Find Julian date
 	double JD = AbsTimeToJD(AbsTime);
 	double JD_int;
 	double JD_frac = modf(JD, &JD_int); // Send JD as a sum of two floats to preserve precision
-	sersend[15] = (float)JD_int;
-	sersend[16] = (float)JD_frac;
-	sersend[17] = (float)SimTime;
+	serSend[15] = (float)JD_int;
+	serSend[16] = (float)JD_frac;
+	serSend[17] = (float)SimTime;
 
 
 	// Send and receive data from flat-sat
 	serialHandshake(serial_port);
-	serialSendFloats(serial_port, sersend, sensorFloats);
-	if(serialReceiveFloats(serial_port, serrec, actuatorFloats) != actuatorFloats) {
+	serialSendFloats(serial_port, serSend, sensorFloats);
+	if(serialReceiveFloats(serial_port, serRec, actuatorFloats) != actuatorFloats) {
 		return;
 	}
 
@@ -1071,37 +1071,37 @@ void SlugSatFSW(struct SCType *S)
 	// Print mag field
 	printf("\nMag Field (micro Tesla):\t");
 	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", sersend[i]);
+		printf("%4.4e\t", serSend[i]);
 	}
 	
 	// Print gyro
 	printf("\nGyro (rad/sec):\t\t\t");
 	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", sersend[i+3]);
+		printf("%4.4e\t", serSend[i+3]);
 	}
 	
 	// Print solar vector
 	printf("\nSolar Vector (normalized): \t");
 	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", sersend[i+6]);
+		printf("%4.4e\t", serSend[i+6]);
 	}
 	
 	// Print Pos J2000
 	printf("\nPos J2000 (km):\t\t\t");
 	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", sersend[i+9]);
+		printf("%4.4e\t", serSend[i+9]);
 	}
 	
 	// Print w_rw
 	printf("\nw_rw (rad/sec):\t\t\t");
 	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", sersend[i+12]);
+		printf("%4.4e\t", serSend[i+12]);
 	}
 	
 	// Print time
 	printf("\nTime:\t\t\t\t");
 	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", sersend[i+15]);
+		printf("%4.4e\t", serSend[i+15]);
 	}
 	
 	//Print RX data
@@ -1110,13 +1110,13 @@ void SlugSatFSW(struct SCType *S)
 	//Reaction Wheel PWM
 	printf("\nReaction Wheel PWM\t");
 	for(int i = 0;i < 3;i++) {
-	printf("%4.2f\t", serrec[i]);
+	printf("%4.2f\t", serRec[i]);
 	}
 	
 	//Torque Rod PWM
 	printf("\nTorque Rod PWM\t\t");
 	for(int i = 0;i < 3;i++) {
-	printf("%4.2f\t", serrec[i+3]);
+	printf("%4.2f\t", serRec[i+3]);
 	}	
 			
 
@@ -1126,12 +1126,12 @@ void SlugSatFSW(struct SCType *S)
 
 	// Convert to double and split into reaction wheels and torque rods
 	for(int i = 0;i < 3;i++) {
-		pwmWhl[i] = (double)serrec[i];	// Reaction Wheel
-		if(pwmWhl[i] > 50.0) pwmWhl[i] = 50.0;
-		else if(pwmWhl[i] < -50.0) pwmWhl[i] = -50.0;
-		pwmMtb[i] = (double)serrec[i+3]; // Magnetic torque bar
-		if(pwmMtb[i] > 100.0) pwmMtb[i] = 100.0;
-		else if(pwmMtb[i] < -100.0) pwmMtb[i] = -100.0;
+		rwPWM[i] = (double)serRec[i];	// Reaction Wheel
+		if(rwPWM[i] > 50.0) rwPWM[i] = 50.0;
+		else if(rwPWM[i] < -50.0) rwPWM[i] = -50.0;
+		trPWM[i] = (double)serRec[i+3]; // Magnetic torque bar
+		if(trPWM[i] > 100.0) trPWM[i] = 100.0;
+		else if(trPWM[i] < -100.0) trPWM[i] = -100.0;
 	}
 
 
@@ -1148,7 +1148,7 @@ void SlugSatFSW(struct SCType *S)
 	// Oversample reaction wheel dynamics
 	for(double t = 0;t < AC->DT;t += sample_dt) {
 		for(int i = 0;i < 3;i++) {
-			vRw[i] = vRwMax*(pwmWhl[i]/100.0); // Get voltage across motor
+			vRw[i] = rwVmax*(rwPWM[i]/100.0); // Get voltage across motor
 			// double fricTrq = 0.019e-3 +
 			rwTrq[i] = (Kt/R)*(vRw[i] - w_rw[i]*Ke); // Find torque from DC motor equation
 			w_rw_dot[i] = rwTrq[i]/AC->Whl[i].J; // Find acceleration from torque
@@ -1171,9 +1171,9 @@ void SlugSatFSW(struct SCType *S)
 	printf("\n\n");
 
 
-	//Convert torque rod PWM to torque & send to AC
+	//Convert torque rod (MTB) PWM to torque & send to AC
 	for(int i = 0;i < 3;i++){
-		AC->MTB[i].Mcmd = 2.0*pwmMtb[i]/100.0; //k*vMtbMax*pwmMtb[i]/100.0;
+		AC->MTB[i].Mcmd = 2.0*trPWM[i]/100.0; //k*trVmax*trPWM[i]/100.0;
 	}
 	
 	
@@ -1196,20 +1196,20 @@ void SlugSatFSW(struct SCType *S)
 	//Find ACS state
 	sscanf(string, "%s -- %s\n", s1, state);
 	
-	//Actuator parameters, VRwMax = 8.0, vMtbMax = 3.3; Voltage rails
+	//Actuator parameters, rwVmax = 8.0, trVmax = 3.3; Voltage rails
 	trRes = 15.0; //Estimated Torque rod resistance (Ohms) 
 	rwRes = 92.7; //Faulhaber 1509 terminal resistance
 
 	//Reaction Wheel Power
 	for(int i = 0;i < 3;i++) {
-		double v = vRwMax*fabs(pwmWhl[i])/100.0 - w_rw[i]*Ke;
+		double v = rwVmax*fabs(rwPWM[i])/100.0 - w_rw[i]*Ke;
 		rwPower += v*v / rwRes;
 	}
 	printf("\nReaction Wheel Power:\t%6.3f [mW]", 1000*rwPower);
 
 	//Torque Rod Power
 	for(int i = 0;i < 3;i++) {
-		double v = vMtbMax*fabs(pwmMtb[i]) / 100.0;
+		double v = trVmax*fabs(trPWM[i]) / 100.0;
 		trPower += v*v / trRes;
 	}
 	printf("\nTorque Rod Power:\t%6.3f [mW]", 1000*trPower);
