@@ -1149,6 +1149,7 @@ void SlugSatFSW(struct SCType *S)
 	for(double t = 0;t < AC->DT;t += sample_dt) {
 		for(int i = 0;i < 3;i++) {
 			vRw[i] = vRwMax*(pwmWhl[i]/100.0); // Get voltage across motor
+			// double fricTrq = 0.019e-3 +
 			rwTrq[i] = (Kt/R)*(vRw[i] - w_rw[i]*Ke); // Find torque from DC motor equation
 			w_rw_dot[i] = rwTrq[i]/AC->Whl[i].J; // Find acceleration from torque
 			w_rw[i] += w_rw_dot[i]*sample_dt; // Integrate to find reaction wheel speed
@@ -1178,77 +1179,63 @@ void SlugSatFSW(struct SCType *S)
 	
 	//Calculate Power
 	double trRes, rwRes;
-	char s1[10], s2[10], state[10];
+	char s1[300], s2[10], state[10];
 	char detumble[] = "Detumble", reorient[] = "Reorient", stabilize[] = "Stabilize";
 	
 	static int init_run = 0;
-	static double detumblePower, reorientPower, stabilizationPower,rwPower, trPower, pTotal;
-	if(init_run ==0){
-		detumblePower =0;
-		reorientPower =0;
-		stabilizationPower =0;
-		rwPower =0;
-		trPower = 0;
-		pTotal = 0;
+	static double detumbleEnergy, reorientEnergy, stabilizationEnergy, totalEnergy;
+	double rwPower = 0, trPower = 0, totalPower;
+	if(init_run == 0){
+		detumbleEnergy = 0;
+		reorientEnergy = 0;
+		stabilizationEnergy = 0;
+		totalEnergy = 0;
 		init_run =1;
 	}
 
-	//Find state
-	sscanf(string, "%s, %s, %s", s1, s2, state);
+	//Find ACS state
+	sscanf(string, "%s -- %s\n", s1, state);
 	
 	//Actuator parameters, VRwMax = 8.0, vMtbMax = 3.3; Voltage rails
 	trRes = 15.0; //Estimated Torque rod resistance (Ohms) 
 	rwRes = 92.7; //Faulhaber 1509 terminal resistance
-	
-	/*//Detumbling power
-	if (strcmp(detumble, state) == 0){
-		for(int i = 0;i < 3;i++) {
-		detumblePower += (fabs(pwmMtb[1]) / 100.0 * vMtbMax * fabs(pwmMtb[1]) / 100.0 * vMtbMax) /trRes +
-				 (fabs(pwmWhl[1]) /100.0* vRwMax * fabs(pwmWhl[1]) /100.0 * vRwMax) / rwRes;
-		}
+
+	//Reaction Wheel Power
+	for(int i = 0;i < 3;i++) {
+		double v = vRwMax*fabs(pwmWhl[i])/100.0 - w_rw[i]*Ke;
+		rwPower += v*v / rwRes;
 	}
+	printf("\nReaction Wheel Power:\t %3.3f [W]", rwPower);
+
+	//Torque Rod Power
+	for(int i = 0;i < 3;i++) {
+		double v = fabs(pwmMtb[i]) / 100.0 * vMtbMax;
+		trPower += v*v / trRes;
+	}
+	printf("\nTorque Rod Power:\t %3.3f [W]", trPower);
+
+	//Total Power
+	totalPower = rwPower + trPower;
+	printf("\nTotal Power:\t %3.3f [W]\n", totalPower);
+
+	//Detumbling power
+	if (strcmp(detumble, state) == 0){
+		detumbleEnergy += totalPower*AC->DT;
+	}
+
 	//Orientation Power
 	if (strcmp(reorient, state) == 0){
-		for(int i = 0;i < 3;i++) {
-		reorientPower += (fabs(pwmMtb[1]) / 100.0 * vMtbMax * fabs(pwmMtb[1]) / 100.0 * vMtbMax) /trRes +
-				 (fabs(pwmWhl[1]) /100.0* vRwMax * fabs(pwmWhl[1]) /100.0 * vRwMax) / rwRes;
-		}
+		reorientEnergy += totalPower*AC->DT;
 	}
 	
 	//Stabilization Power
 	if (strcmp(stabilize, state) == 0){
-		for(int i = 0;i < 3;i++) {
-		stabilizationPower += (fabs(pwmMtb[1]) / 100.0 * vMtbMax * fabs(pwmMtb[1]) / 100.0 * vMtbMax) /trRes +
-				 (fabs(pwmWhl[1]) /100.0* vRwMax * fabs(pwmWhl[1]) /100.0 * vRwMax) / rwRes;
-		}
-	}*/
-
-	/*//Print out power consumption for each state
-		printf("\nDetumbling Power: %3.3f\t \nReorientation Power: %3.3f\t \nStabilization Power: %3.3f\t",
-				detumblePower, reorientPower, stabilizationPower);
-	*/
-	//Reaction Wheel Power
-	for(int i = 0;i < 3;i++) {
-	rwPower +=  (fabs(pwmWhl[i]) /100.0* vRwMax * fabs(pwmWhl[i]) /100.0 * vRwMax) / rwRes;
+		stabilizationEnergy += totalPower*AC->DT;
 	}
-	printf("\nReaction Wheel Power:\t %3.3f", rwPower);
 
-	//Torque Rod Power
-	for(int i = 0;i < 3;i++) {
-	trPower +=  (fabs(pwmMtb[i]) / 100.0 * vMtbMax * fabs(pwmMtb[i]) / 100.0 * vMtbMax) /trRes;
-	}
-	printf("\nTorque Rod Power:\t %3.3f", trPower);
-
-	//Total Power
-	for(int i = 0;i < 3;i++) {
-	pTotal  += (fabs(pwmMtb[i]) / 100.0 * vMtbMax * fabs(pwmMtb[i]) / 100.0 * vMtbMax) /trRes +
-				 (fabs(pwmWhl[i]) /100.0* vRwMax * fabs(pwmWhl[i]) /100.0 * vRwMax) / rwRes;
-	}
-	printf("\nTotal Power:\t %3.3f\n", pTotal);
-
-
-
-		
+	//Print out power consumption for each state
+	printf("\nDetumbling Energy: %3.3f [J]\t \nReorientation Energy: %3.3f [J]\t \nStabilization Energy: %3.3f [J]\t",
+			detumbleEnergy, reorientEnergy, stabilizationEnergy);
 }
 
 
