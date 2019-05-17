@@ -1146,7 +1146,7 @@ void SlugSatFSW(struct SCType *S)
 	//Torque Rod PWM
 	printf("\nTorque Rod PWM\t\t");
 	for(int i = 0;i < 3;i++) {
-	printf("%4.2f\t", serRec[i+3]);
+	printf("%6.4f\t", trPWM[i]);
 	}
 
 	// Convert reaction wheel PWM to torque & send to AC
