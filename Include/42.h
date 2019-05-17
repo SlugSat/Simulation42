@@ -1,4 +1,4 @@
-/*    This file is distributed with 42,                               */
+/*    This file is dizstributed with 42,                               */
 /*    the (mostly harmless) spacecraft dynamics simulation            */
 /*    created by Eric Stoneking of NASA Goddard Space Flight Center   */
 

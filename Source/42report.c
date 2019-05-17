@@ -156,6 +156,21 @@ void MagReport(void)
       
 }
 /*********************************************************************/
+//void powerReport(void)
+//{
+//	double tto
+//	static FILE *instPower;
+//		static long First = 1;
+//
+//		      if (First) {
+//			         First = 0;
+//			         instPower = FileOpen(InOutPath,"instPower.42","wt");
+//		      }
+//
+//		fprintf(instPower,"%f\n",totalP);
+//
+//}
+/*********************************************************************/
 void GyroReport(void)
 {
       static FILE *gyrofile1, *gyrofile2, *gyrofile3, *gyrofile4, *gyrofile5, *gyrofile6;

@@ -271,6 +271,7 @@ long SimStep(void)
 
 
          Report();  /* File Output */
+
       }
 
       ReportProgress();
@@ -291,6 +292,7 @@ long SimStep(void)
 
       #ifdef _ENABLE_SOCKETS_
          InterProcessComm(); /* Send and receive from external processes */
+
       #endif
 
       Ephemerides(); /* Sun, Moon, Planets, Spacecraft, Useful Auxiliary Frames */
@@ -307,6 +309,7 @@ long SimStep(void)
          }
       }
       Report();  /* File Output */
+
 	
 
       /* Exit when Stoptime is reached */

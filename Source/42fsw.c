@@ -15,6 +15,8 @@
 #include "42.h"
 #include "SerialCommunication.h"
 
+
+
 void AcFsw(struct AcType *AC);
 
 /* #ifdef __cplusplus
@@ -1002,7 +1004,9 @@ void SlugSatFSW(struct SCType *S)
 	static double w_rw[3] = {0, 0, 0}; // Reaction wheel speed
 	double w_rw_dot[3];
 	double k = 0.7597; // Torque rod constant (based on physical parameters)
-	int rwVmax = 8.0, trVmax = 3.3; // Voltage rails
+	double rwVmax = 8.0, trVmax = 3.3; // Voltage rails
+	//max dipole moment
+	double maxDip = 1.5;
 
 
 	// Get AC pointer
@@ -1085,7 +1089,7 @@ void SlugSatFSW(struct SCType *S)
 	for(int i = 0;i < 3;i++) {
 		printf("%4.4e\t", serSend[i+6]);
 	}
-	
+
 	// Print Pos J2000
 	printf("\nPos J2000 (km):\t\t\t");
 	for(int i = 0;i < 3;i++) {
@@ -1133,7 +1137,18 @@ void SlugSatFSW(struct SCType *S)
 		if(trPWM[i] > 100.0) trPWM[i] = 100.0;
 		else if(trPWM[i] < -100.0) trPWM[i] = -100.0;
 	}
+	//test
+	//Reaction Wheel PWM
+	printf("\nReaction Wheel PWM\t");
+	for(int i = 0;i < 3;i++) {
+	printf("%4.2f\t", serRec[i]);
+	}
 
+	//Torque Rod PWM
+	printf("\nTorque Rod PWM\t\t");
+	for(int i = 0;i < 3;i++) {
+	printf("%4.2f\t", serRec[i+3]);
+	}
 
 	// Convert reaction wheel PWM to torque & send to AC
 	static double Kt = 0.00713, Ke = 0.00713332454, R = 92.7; // Reaction wheel motor constants
@@ -1173,18 +1188,24 @@ void SlugSatFSW(struct SCType *S)
 
 	//Convert torque rod (MTB) PWM to torque & send to AC
 	for(int i = 0;i < 3;i++){
-		AC->MTB[i].Mcmd = 2.0*trPWM[i]/100.0; //k*trVmax*trPWM[i]/100.0;
+		AC->MTB[i].Mcmd = maxDip*trPWM[i]/100.0; //k*trVmax*trPWM[i]/100.0;
+		//printf("\nDipole moment: \t%f\t", AC->MTB[i].Mcmd);
+		//printf("\n mcmd: %f\n" , AC->MTB[i].Mcmd);
 	}
+	printf("\n\n");
 	
 	
 	//Calculate Power
-	double trRes, rwRes;
+	double trRes = 15.0;
+	double rwRes = 92.7;
 	char s1[300], s2[10], state[10];
 	char detumble[] = "Detumble", reorient[] = "Reorient", stabilize[] = "Stabilize";
 	
 	static int init_run = 0;
 	static double detumbleEnergy, reorientEnergy, stabilizationEnergy, totalEnergy;
-	double rwPower = 0, trPower = 0, totalPower;
+	double rwPower = 0;
+	double trPower;
+	double totalPower = 0;
 	if(init_run == 0){
 		detumbleEnergy = 0;
 		reorientEnergy = 0;
@@ -1197,8 +1218,8 @@ void SlugSatFSW(struct SCType *S)
 	sscanf(string, "%s -- %s\n", s1, state);
 	
 	//Actuator parameters, rwVmax = 8.0, trVmax = 3.3; Voltage rails
-	trRes = 15.0; //Estimated Torque rod resistance (Ohms) 
-	rwRes = 92.7; //Faulhaber 1509 terminal resistance
+//	trRes = 15.0; //Estimated Torque rod resistance (Ohms)
+//	rwRes = 92.7; //Faulhaber 1509 terminal resistance
 
 	//Reaction Wheel Power
 	for(int i = 0;i < 3;i++) {
@@ -1209,14 +1230,59 @@ void SlugSatFSW(struct SCType *S)
 
 	//Torque Rod Power
 	for(int i = 0;i < 3;i++) {
-		double v = trVmax*fabs(trPWM[i]) / 100.0;
-		trPower += v*v / trRes;
+
+		//Test code
+		//printf("\nvMax: \t %f\n", trVmax);
+
+
+		double v = trVmax* fabs(trPWM[i]) / 100.0;
+
+
+		//Test code
+
+		//printf("\n Voltage max:\t %f\t and V: \t%f \n", trVmax, v);
+		//printf("\ntrPWM: \t%f\t", trPWM[i]);
+
+
+		trPower += (v*v / trRes);
+
+
+		//Test code
+		//printf("\ntrPower: \t%f\t",trPower[i]);
 	}
-	printf("\nTorque Rod Power:\t%6.3f [mW]", 1000*trPower);
+
+	printf("\n\nTorque Rod Power:\t %f", 1000*trPower);
+
+	//Test code
+
+	//double trPowTot =  trPower[0] +trPower[1]+trPower[2];
+	//printf("\n");
+
+	//printf ("\n Torque rod power (trPower): \t%f\n", trPower );
+
+
 
 	//Total Power
-	totalPower = rwPower + trPower;
+	totalPower = rwPower + trPower ;
 	printf("\nTotal Power:\t\t%6.3f [mW]\n", 1000*totalPower);
+
+	//Print instantaneous power to file
+
+	//Create and initialize files
+	static FILE *instPower, *instP, *stateEnergy, *tEnergy;
+	static long First = 1;
+
+	      if (First) {
+	         First = 0;
+		         instPower = FileOpen(InOutPath,"instPower.42","wt");
+		         instP = FileOpen(InOutPath,"instP.42","wt");
+		         stateEnergy = FileOpen(InOutPath,"stateEnergy.42","wt");
+		         tEnergy = FileOpen(InOutPath,"totalEnergy.42","wt");
+	      }
+	//Print to file
+	fprintf(instPower, "%lf\t %lf\t %lf\n",rwPower, trPower, totalPower);
+	fprintf(instP, "%lf\n", totalPower);
+
 
 	//Detumbling power
 	if (strcmp(detumble, state) == 0){
@@ -1233,9 +1299,17 @@ void SlugSatFSW(struct SCType *S)
 		stabilizationEnergy += totalPower*AC->DT;
 	}
 
+
+	totalEnergy = detumbleEnergy + reorientEnergy + stabilizationEnergy;
+
 	//Print out power consumption for each state
-	printf("\nDetumbling Energy: %3.3f [J]\t \nReorientation Energy: %3.3f [J]\t \nStabilization Energy: %3.3f [J]\t",
+	printf("\nDetumbling Energy: %3.3f [J]\t \nReorientation Energy: %3.3f [J]\t \nStabilization Energy: %3.3f [J]\n",
 			detumbleEnergy, reorientEnergy, stabilizationEnergy);
+
+	fprintf(stateEnergy, "%lf\t %lf\t%lf\n", detumbleEnergy, reorientEnergy, stabilizationEnergy);
+	fprintf(tEnergy, "%lf\n", totalEnergy);
+
+
 }
 
 
