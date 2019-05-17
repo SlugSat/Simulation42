@@ -1163,8 +1163,20 @@ void SlugSatFSW(struct SCType *S)
 	for(double t = 0;t < AC->DT;t += sample_dt) {
 		for(int i = 0;i < 3;i++) {
 			vRw[i] = rwVmax*(rwPWM[i]/100.0); // Get voltage across motor
-			// double fricTrq = 0.019e-3 +
-			rwTrq[i] = (Kt/R)*(vRw[i] - w_rw[i]*Ke); // Find torque from DC motor equation
+
+			//Include static and dynamic torque losses
+				double C0 = .019e-3; //Static friction torque, Nm
+				double CV = 3.581e-10; //Dynamic friction torque, Nm/rad/s
+
+			//Reaction Wheel Torque
+			double fricTrq;
+			if(w_rw[i] > 0) {
+				fricTrq = C0 + CV * fabs(w_rw[i]);
+			}
+			else {
+				fricTrq = -C0 - CV * fabs(w_rw[i]);
+			}
+			rwTrq[i] = (Kt/R)*(vRw[i] - w_rw[i]*Ke) - fricTrq; // Find torque from DC motor equation
 			w_rw_dot[i] = rwTrq[i]/AC->Whl[i].J; // Find acceleration from torque
 			w_rw[i] += w_rw_dot[i]*sample_dt; // Integrate to find reaction wheel speed
 		}
@@ -1175,6 +1187,9 @@ void SlugSatFSW(struct SCType *S)
 	for(int i = 0;i < 3;i++) {
 		printf("%4.4e\t", S->B[0].wn[i]);
 	}
+
+
+
 
 	// Send torque to achieve the correct changed in rotational inertia in the next sim step
 	//printf("\nRW torque:\t");
@@ -1220,9 +1235,10 @@ void SlugSatFSW(struct SCType *S)
 
 
 	//Reaction Wheel Power
+	double Inl = 0.009; //No load current
 	for(int i = 0;i < 3;i++) {
 		double v = fabs(rwVmax*rwPWM[i]/100.0 - w_rw[i]*Ke); // Voltage across the motor
-		rwPower += v*v / rwRes;
+		rwPower += v*v / rwRes + Inl;
 	}
 	printf("\nReaction Wheel Power:\t%6.3f [mW]", 1000*rwPower);
 
@@ -1249,7 +1265,7 @@ void SlugSatFSW(struct SCType *S)
 		//printf("\ntrPower: \t%f\t",trPower[i]);
 	}
 
-	printf("\n\nTorque Rod Power:\t %f", 1000*trPower);
+	printf("\n\nTorque Rod Power:\t %f [mW]", 1000*trPower);
 
 	//Test code
 
