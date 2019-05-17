@@ -999,20 +999,32 @@ void SlugSatFSW(struct SCType *S)
 	//Variables from 42
 	struct AcType *AC; //Attitude control type
 
+	// Get AC pointer
+		AC = &S->AC;
+
 
 	//Actuator variables
 	static double w_rw[3] = {524, 524, 524}; // Reaction wheel speed
-	for(int i = 0;i < 3;i++) {
-		S->Whl[i].w = w_rw[i];
-	}
 	double w_rw_dot[3];
 	double rwVmax = 8.0, trVmax = 3.3; // Voltage rails
 	double maxDip = 1.5;
 
-
-	// Get AC pointer
-	AC = &S->AC;
-
+	//Power Variables
+	static int init_run = 0;
+	static double detumbleEnergy, reorientEnergy, stabilizationEnergy, totalEnergy;
+	double rwPower = 0;
+	double trPower;
+	double totalPower = 0;
+	if(init_run == 0){
+		detumbleEnergy = 0;
+		reorientEnergy = 0;
+		stabilizationEnergy = 0;
+		totalEnergy = 0;
+		for(int i = 0;i < 3;i++) {
+			AC->Whl[i].w = w_rw[i];
+		}
+		init_run = 1;
+	}
 
 	// Input / Output to serial
 	int sensorFloats = 18; //number of floats to send
@@ -1214,19 +1226,6 @@ void SlugSatFSW(struct SCType *S)
 	char s1[300], s2[10], state[10];
 	char detumble[] = "Detumble", reorient[] = "Reorient", stabilize[] = "Stabilize";
 	
-	static int init_run = 0;
-	static double detumbleEnergy, reorientEnergy, stabilizationEnergy, totalEnergy;
-	double rwPower = 0;
-	double trPower;
-	double totalPower = 0;
-	if(init_run == 0){
-		detumbleEnergy = 0;
-		reorientEnergy = 0;
-		stabilizationEnergy = 0;
-		totalEnergy = 0;
-		init_run =1;
-	}
-
 	//Find ACS state
 	sscanf(string, "%s -- %s\n", s1, state);
 	
