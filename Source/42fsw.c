@@ -1001,11 +1001,10 @@ void SlugSatFSW(struct SCType *S)
 
 
 	//Actuator variables
-	static double w_rw[3] = {0, 0, 0}; // Reaction wheel speed
+	static double w_rw[3] = {524, 524, 524}; // Reaction wheel speed
 	double w_rw_dot[3];
 	double k = 0.7597; // Torque rod constant (based on physical parameters)
 	double rwVmax = 8.0, trVmax = 3.3; // Voltage rails
-	//max dipole moment
 	double maxDip = 1.5;
 
 
@@ -1075,7 +1074,7 @@ void SlugSatFSW(struct SCType *S)
 	// Print mag field
 	printf("\nMag Field (micro Tesla):\t");
 	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", serSend[i]);
+		printf("%6.2f\t\t", serSend[i]);
 	}
 	
 	// Print gyro
@@ -1099,12 +1098,12 @@ void SlugSatFSW(struct SCType *S)
 	// Print w_rw
 	printf("\nw_rw (rad/sec):\t\t\t");
 	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", serSend[i+12]);
+		printf("%6.2f\t\t", serSend[i+12]);
 	}
 	
 	// Print time
 	printf("\nTime:\t\t\t\t");
-	for(int i = 0;i < 3;i++) {
+	for(int i = 0;i < 2;i++) {
 		printf("%4.4e\t", serSend[i+15]);
 	}
 	
@@ -1114,13 +1113,13 @@ void SlugSatFSW(struct SCType *S)
 	//Reaction Wheel PWM
 	printf("\nReaction Wheel PWM\t");
 	for(int i = 0;i < 3;i++) {
-	printf("%4.2f\t", serRec[i]);
+		printf("%4.2f\t", serRec[i]);
 	}
 	
 	//Torque Rod PWM
 	printf("\nTorque Rod PWM\t\t");
 	for(int i = 0;i < 3;i++) {
-	printf("%4.2f\t", serRec[i+3]);
+		printf("%4.2f\t", serRec[i+3]);
 	}	
 			
 
@@ -1131,8 +1130,8 @@ void SlugSatFSW(struct SCType *S)
 	// Convert to double and split into reaction wheels and torque rods
 	for(int i = 0;i < 3;i++) {
 		rwPWM[i] = (double)serRec[i];	// Reaction Wheel
-		if(rwPWM[i] > 50.0) rwPWM[i] = 50.0;
-		else if(rwPWM[i] < -50.0) rwPWM[i] = -50.0;
+		if(rwPWM[i] > 100.0) rwPWM[i] = 100.0;
+		else if(rwPWM[i] < -100.0) rwPWM[i] = -100.0;
 		trPWM[i] = (double)serRec[i+3]; // Magnetic torque bar
 		if(trPWM[i] > 100.0) trPWM[i] = 100.0;
 		else if(trPWM[i] < -100.0) trPWM[i] = -100.0;
@@ -1196,8 +1195,6 @@ void SlugSatFSW(struct SCType *S)
 	
 	
 	//Calculate Power
-	double trRes = 15.0;
-	double rwRes = 92.7;
 	char s1[300], s2[10], state[10];
 	char detumble[] = "Detumble", reorient[] = "Reorient", stabilize[] = "Stabilize";
 	
@@ -1218,12 +1215,13 @@ void SlugSatFSW(struct SCType *S)
 	sscanf(string, "%s -- %s\n", s1, state);
 	
 	//Actuator parameters, rwVmax = 8.0, trVmax = 3.3; Voltage rails
-//	trRes = 15.0; //Estimated Torque rod resistance (Ohms)
-//	rwRes = 92.7; //Faulhaber 1509 terminal resistance
+	double trRes = 15.0; //Estimated Torque rod resistance (Ohms)
+	double rwRes = 92.7; //Faulhaber 1509 terminal resistance
+
 
 	//Reaction Wheel Power
 	for(int i = 0;i < 3;i++) {
-		double v = rwVmax*fabs(rwPWM[i])/100.0 - w_rw[i]*Ke;
+		double v = fabs(rwVmax*rwPWM[i]/100.0 - w_rw[i]*Ke); // Voltage across the motor
 		rwPower += v*v / rwRes;
 	}
 	printf("\nReaction Wheel Power:\t%6.3f [mW]", 1000*rwPower);
