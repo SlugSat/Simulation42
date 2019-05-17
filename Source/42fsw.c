@@ -1002,8 +1002,10 @@ void SlugSatFSW(struct SCType *S)
 
 	//Actuator variables
 	static double w_rw[3] = {524, 524, 524}; // Reaction wheel speed
+	for(int i = 0;i < 3;i++) {
+		S->Whl[i].w = w_rw[i];
+	}
 	double w_rw_dot[3];
-	double k = 0.7597; // Torque rod constant (based on physical parameters)
 	double rwVmax = 8.0, trVmax = 3.3; // Voltage rails
 	double maxDip = 1.5;
 
@@ -1192,12 +1194,12 @@ void SlugSatFSW(struct SCType *S)
 
 
 	// Send torque to achieve the correct changed in rotational inertia in the next sim step
-	//printf("\nRW torque:\t");
+	printf("\nw_rw:\t\tWhl.w:\n");
 	for(int i = 0;i < 3;i++) {
 		AC->Whl[i].Tcmd = AC->Whl[i].J*(w_rw[i] - w_rw_old[i])/AC->DT;
-		//printf("%4.4e\t", S->Whl[i].Trq);
+		printf("%4.4e\t%4.4e\n", w_rw[i], AC->Whl[i].w);
 	}
-	printf("\n\n");
+	printf("\n");
 
 
 	//Convert torque rod (MTB) PWM to torque & send to AC
@@ -1206,7 +1208,6 @@ void SlugSatFSW(struct SCType *S)
 		//printf("\nDipole moment: \t%f\t", AC->MTB[i].Mcmd);
 		//printf("\n mcmd: %f\n" , AC->MTB[i].Mcmd);
 	}
-	printf("\n\n");
 	
 	
 	//Calculate Power
@@ -1237,44 +1238,22 @@ void SlugSatFSW(struct SCType *S)
 	//Reaction Wheel Power
 	double Inl = 0.009; //No load current
 	for(int i = 0;i < 3;i++) {
-		double v = fabs(rwVmax*rwPWM[i]/100.0 - w_rw[i]*Ke); // Voltage across the motor
-		rwPower += v*v / rwRes + Inl;
+
+		double v = rwVmax*rwPWM[i]/100.0 - w_rw[i]*Ke; // Voltage across the motor
+		if(v > 0) {
+			rwPower += v*v / rwRes;
+		}
+
 	}
 	printf("\nReaction Wheel Power:\t%6.3f [mW]", 1000*rwPower);
 
 	//Torque Rod Power
 	for(int i = 0;i < 3;i++) {
-
-		//Test code
-		//printf("\nvMax: \t %f\n", trVmax);
-
-
 		double v = trVmax* fabs(trPWM[i]) / 100.0;
-
-
-		//Test code
-
-		//printf("\n Voltage max:\t %f\t and V: \t%f \n", trVmax, v);
-		//printf("\ntrPWM: \t%f\t", trPWM[i]);
-
-
 		trPower += (v*v / trRes);
-
-
-		//Test code
-		//printf("\ntrPower: \t%f\t",trPower[i]);
 	}
 
 	printf("\n\nTorque Rod Power:\t %f [mW]", 1000*trPower);
-
-	//Test code
-
-	//double trPowTot =  trPower[0] +trPower[1]+trPower[2];
-	//printf("\n");
-
-	//printf ("\n Torque rod power (trPower): \t%f\n", trPower );
-
-
 
 	//Total Power
 	totalPower = rwPower + trPower ;
@@ -1288,10 +1267,10 @@ void SlugSatFSW(struct SCType *S)
 
 	      if (First) {
 	         First = 0;
-		         instPower = FileOpen(InOutPath,"instPower.42","wt");
-		         instP = FileOpen(InOutPath,"instP.42","wt");
-		         stateEnergy = FileOpen(InOutPath,"stateEnergy.42","wt");
-		         tEnergy = FileOpen(InOutPath,"totalEnergy.42","wt");
+			 instPower = FileOpen(InOutPath,"instPower.42","wt");
+			 instP = FileOpen(InOutPath,"instP.42","wt");
+			 stateEnergy = FileOpen(InOutPath,"stateEnergy.42","wt");
+			 tEnergy = FileOpen(InOutPath,"totalEnergy.42","wt");
 	      }
 	//Print to file
 	fprintf(instPower, "%lf\t %lf\t %lf\n",rwPower, trPower, totalPower);
