@@ -986,6 +986,19 @@ void FindAppendageInertia(long Ig, struct SCType *S,double Iapp[3])
          }
       }
 }
+
+double sign(double x) {
+	if(x > 0) {
+		return 1;
+	}
+	else if(x < 0) {
+		return -1;
+	}
+	else {
+		return 0;
+	}
+}
+
 /**********************************************************************/
 /*  SlugSat Flight Software      */
 void SlugSatFSW(struct SCType *S)
@@ -1004,29 +1017,21 @@ void SlugSatFSW(struct SCType *S)
 
 
 	//Actuator variables
-	static double w_rw[3] = {524, 524, 524}; // Reaction wheel speed
-	double w_rw_dot[3];
+	static double w_rw[3] = {0, 0, 0}; // Reaction wheel speed
 	double rwVmax = 8.0, trVmax = 3.3; // Voltage rails
 	double maxDip = 1.5;
 
-	//Power Variables
+	// Initialize reaction wheel speed
 	static int init_run = 0;
-	static double detumbleEnergy, reorientEnergy, stabilizationEnergy, totalEnergy;
-	double rwPower = 0;
-	double trPower;
-	double totalPower = 0;
 	if(init_run == 0){
-		detumbleEnergy = 0;
-		reorientEnergy = 0;
-		stabilizationEnergy = 0;
-		totalEnergy = 0;
 		for(int i = 0;i < 3;i++) {
 			AC->Whl[i].w = w_rw[i];
 		}
 		init_run = 1;
 	}
 
-	// Input / Output to serial
+
+	// ---------- PREPARE TO SEND/RECEIVE FROM THE FLAT-SAT ----------
 	int sensorFloats = 18; //number of floats to send
 	int actuatorFloats = 6; //number of floats to receive
 	float serSend[sensorFloats], serRec[actuatorFloats]; //serial send and receive
@@ -1071,7 +1076,7 @@ void SlugSatFSW(struct SCType *S)
 	serSend[17] = (float)SimTime;
 
 
-	// Send and receive data from flat-sat
+	// ---------- COMMUNICATION WITH THE FLAT-SAT ----------
 	serialHandshake(serial_port);
 	serialSendFloats(serial_port, serSend, sensorFloats);
 	if(serialReceiveFloats(serial_port, serRec, actuatorFloats) != actuatorFloats) {
@@ -1082,7 +1087,8 @@ void SlugSatFSW(struct SCType *S)
 	char string[500];
 	int read_string_err = serialReceiveString(serial_port, (uint8_t*)string);
 
-	//Print TX data to verify transmission	
+
+	// ---------- PRINT DATA TO TERMINAL ----------
 	printf("\nTX:\n");
 	
 	// Print mag field
@@ -1141,7 +1147,7 @@ void SlugSatFSW(struct SCType *S)
 		printf("\n\nPRINT FROM STM32\n%s\nEND PRINT FROM STM32\n", string);
 	}
 
-	// Convert to double and split into reaction wheels and torque rods
+	// Get reaction wheel and torque rod PWMs
 	for(int i = 0;i < 3;i++) {
 		rwPWM[i] = (double)serRec[i];	// Reaction Wheel
 		if(rwPWM[i] > 100.0) rwPWM[i] = 100.0;
@@ -1150,143 +1156,153 @@ void SlugSatFSW(struct SCType *S)
 		if(trPWM[i] > 100.0) trPWM[i] = 100.0;
 		else if(trPWM[i] < -100.0) trPWM[i] = -100.0;
 	}
-	//test
-	//Reaction Wheel PWM
+
+	// Print reaction wheel PWM
 	printf("\nReaction Wheel PWM\t");
 	for(int i = 0;i < 3;i++) {
-	printf("%4.2f\t", serRec[i]);
+		printf("%4.2f\t", rwPWM[i]);
 	}
 
-	//Torque Rod PWM
+	// Print torque rod PWM
 	printf("\nTorque Rod PWM\t\t");
 	for(int i = 0;i < 3;i++) {
-	printf("%6.4f\t", trPWM[i]);
+		printf("%6.4f\t", trPWM[i]);
 	}
 
-	// Convert reaction wheel PWM to torque & send to AC
+
+	// ---------- REACTION WHEEL DYNAMICS ----------
 	static double Kt = 0.00713, Ke = 0.00713332454, R = 92.7; // Reaction wheel motor constants
+	static double C0 = 19e-6; // Static friction torque = 19 uNm (in Nm)
+	static double CV = 30.94e-9; // Dynamic friction torque = 30.94 uNm/rad/s (in Nm/rad/s)
 	double sample_dt = 0.1; // Oversampling dt
 	double vRw[3], rwTrq[3]; // Reaction wheel voltage and torque
-
 
 	// Save old RW speed
 	double w_rw_old[3] = {w_rw[0], w_rw[1], w_rw[2]};
 
-
-	// Oversample reaction wheel dynamics
-	for(double t = 0;t < AC->DT;t += sample_dt) {
+	for(double t = 0;t < AC->DT;t += sample_dt) { // Sample every sample_dt seconds
 		for(int i = 0;i < 3;i++) {
 			vRw[i] = rwVmax*(rwPWM[i]/100.0); // Get voltage across motor
 
-			//Include static and dynamic torque losses
-				double C0 = .019e-3; //Static friction torque, Nm
-				double CV = 3.581e-10; //Dynamic friction torque, Nm/rad/s
+			// Find friction torque from motor
+			double fricTrq = C0 + CV * fabs(w_rw[i]);
 
-			//Reaction Wheel Torque
-			double fricTrq;
-			if(w_rw[i] > 0) {
-				fricTrq = C0 + CV * fabs(w_rw[i]);
+			// Motor equation
+			double trq = (Kt/R)*(vRw[i] - w_rw[i]*Ke); // Find torque from DC motor equation
+
+			// Subtract off friction torque
+			if(w_rw[i] == 0.0 && fabs(trq) <= fricTrq) {
+				/* Set torque to zero if the motor is stopped and torque
+				 * is not large enough to overcome static friction */
+				rwTrq[i] = 0;
+				//printf("TORQUE TOO SMALL TO OVERCOME FRICTION!\n");
+			}
+			else if(w_rw[i] > 0) {
+				rwTrq[i] = trq - fricTrq;
+			}
+			else { // w_rw[i] < 0
+				rwTrq[i] = trq + fricTrq;
+			}
+			double w_rw_dot = rwTrq[i]/AC->Whl[i].J; // Find acceleration from torque
+			double delta_w_rw = w_rw_dot*sample_dt; // Find change in motor speed this timestep
+
+			// Check if friction would cause the motor to stop
+			if(sign(w_rw[i] + delta_w_rw) != sign(w_rw[i]) && fabs(trq) <= fricTrq) {
+				printf("FRICTION STOPPED REACTION WHEEL!\n");
+				w_rw[i] = 0;
 			}
 			else {
-				fricTrq = -C0 - CV * fabs(w_rw[i]);
+				w_rw[i] += delta_w_rw; // Integrate to find reaction wheel speed
 			}
-			rwTrq[i] = (Kt/R)*(vRw[i] - w_rw[i]*Ke) - fricTrq; // Find torque from DC motor equation
-			w_rw_dot[i] = rwTrq[i]/AC->Whl[i].J; // Find acceleration from torque
-			w_rw[i] += w_rw_dot[i]*sample_dt; // Integrate to find reaction wheel speed
 		}
 	}
 
-	// Print Craft speed
-	printf("\nCraft speed:\t");
-	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", S->B[0].wn[i]);
-	}
-
-
-
-
 	// Send torque to achieve the correct changed in rotational inertia in the next sim step
-	printf("\nw_rw:\t\tWhl.w:\n");
+	//printf("\nw_rw:\t\tWhl.w:\n");
 	for(int i = 0;i < 3;i++) {
 		AC->Whl[i].Tcmd = AC->Whl[i].J*(w_rw[i] - w_rw_old[i])/AC->DT;
-		printf("%4.4e\t%4.4e\n", w_rw[i], AC->Whl[i].w);
+		//printf("%4.4e\t%4.4e\n", w_rw[i], AC->Whl[i].w);
 	}
 	printf("\n");
 
 
-	//Convert torque rod (MTB) PWM to torque & send to AC
+	// ---------- TORQUE ROD DYNAMICS ----------
+	// Convert torque rod (MTB) PWM to torque & send to AC
 	for(int i = 0;i < 3;i++){
-		AC->MTB[i].Mcmd = maxDip*trPWM[i]/100.0; //k*trVmax*trPWM[i]/100.0;
-		//printf("\nDipole moment: \t%f\t", AC->MTB[i].Mcmd);
-		//printf("\n mcmd: %f\n" , AC->MTB[i].Mcmd);
+		AC->MTB[i].Mcmd = maxDip*trPWM[i]/100.0;
 	}
 	
-	
-	//Calculate Power
+
+	// ---------- CALCULATE POWER ----------
+	//Power Variables
+	static double detumbleEnergy = 0, reorientEnergy = 0, stabilizationEnergy = 0, totalEnergy = 0;
+	double rwPower = 0; // Instantaneous power used by the reaction wheels (W)
+	double trPower; // Instantaneous power used by the torque rods (W)
+	double totalPower = 0; // Total instantaneous power used by the ACS (W)
+
 	char s1[300], s2[10], state[10];
 	char detumble[] = "Detumble", reorient[] = "Reorient", stabilize[] = "Stabilize";
 	
-	//Find ACS state
+	// Find ACS state
 	sscanf(string, "%s -- %s\n", s1, state);
 	
-	//Actuator parameters, rwVmax = 8.0, trVmax = 3.3; Voltage rails
+	// Actuator parameters, rwVmax = 8.0, trVmax = 3.3; Voltage rails
 	double trRes = 15.0; //Estimated Torque rod resistance (Ohms)
 	double rwRes = 92.7; //Faulhaber 1509 terminal resistance
 
 
-	//Reaction Wheel Power
+	// Reaction Wheel Power
 	double Inl = 0.009; //No load current
 	for(int i = 0;i < 3;i++) {
-
-		double v = rwVmax*rwPWM[i]/100.0 - w_rw[i]*Ke; // Voltage across the motor
+		double v = rwVmax*fabs(rwPWM[i])/100.0 - fabs(w_rw[i])*Ke; // Voltage across the motor (volts)
 		if(v > 0) {
 			rwPower += v*v / rwRes;
 		}
 
 	}
-	printf("\nReaction Wheel Power:\t%6.3f [mW]", 1000*rwPower);
+	printf("\nReaction Wheel Power:\t%f [mW]", 1000*rwPower);
 
-	//Torque Rod Power
+	// Torque Rod Power
 	for(int i = 0;i < 3;i++) {
 		double v = trVmax* fabs(trPWM[i]) / 100.0;
 		trPower += (v*v / trRes);
 	}
-
 	printf("\n\nTorque Rod Power:\t %f [mW]", 1000*trPower);
 
-	//Total Power
-	totalPower = rwPower + trPower ;
+	// Total Power
+	totalPower = rwPower + trPower;
 	printf("\nTotal Power:\t\t%6.3f [mW]\n", 1000*totalPower);
 
-	//Print instantaneous power to file
+	// Print instantaneous power to file
 
-	//Create and initialize files
+	// Create and initialize files
 	static FILE *instPower, *instP, *stateEnergy, *tEnergy;
-	static long First = 1;
+	static int First = 1;
 
-	      if (First) {
-	         First = 0;
-			 instPower = FileOpen(InOutPath,"instPower.42","wt");
-			 instP = FileOpen(InOutPath,"instP.42","wt");
-			 stateEnergy = FileOpen(InOutPath,"stateEnergy.42","wt");
-			 tEnergy = FileOpen(InOutPath,"totalEnergy.42","wt");
-	      }
-	//Print to file
+	if (First) {
+		First = 0;
+		instPower = FileOpen(InOutPath,"instPower.42","wt");
+		instP = FileOpen(InOutPath,"instP.42","wt");
+		stateEnergy = FileOpen(InOutPath,"stateEnergy.42","wt");
+		tEnergy = FileOpen(InOutPath,"totalEnergy.42","wt");
+	}
+
+	// Print to file
 	fprintf(instPower, "%lf\t %lf\t %lf\n",rwPower, trPower, totalPower);
 	fprintf(instP, "%lf\n", totalPower);
 
 
-	//Detumbling power
+	// Detumbling power
 	if (strcmp(detumble, state) == 0){
 		detumbleEnergy += totalPower*AC->DT;
 	}
 
-	//Orientation Power
+	// Orientation Power
 	if (strcmp(reorient, state) == 0){
 		reorientEnergy += totalPower*AC->DT;
 	}
 	
-	//Stabilization Power
+	// Stabilization Power
 	if (strcmp(stabilize, state) == 0){
 		stabilizationEnergy += totalPower*AC->DT;
 	}
