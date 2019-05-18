@@ -1195,7 +1195,6 @@ void SlugSatFSW(struct SCType *S)
 				/* Set torque to zero if the motor is stopped and torque
 				 * is not large enough to overcome static friction */
 				rwTrq[i] = 0;
-				//printf("TORQUE TOO SMALL TO OVERCOME FRICTION!\n");
 			}
 			else if(w_rw[i] > 0) {
 				rwTrq[i] = trq - fricTrq;
@@ -1208,7 +1207,6 @@ void SlugSatFSW(struct SCType *S)
 
 			// Check if friction would cause the motor to stop
 			if(sign(w_rw[i] + delta_w_rw) != sign(w_rw[i]) && fabs(trq) <= fricTrq) {
-				printf("FRICTION STOPPED REACTION WHEEL!\n");
 				w_rw[i] = 0;
 			}
 			else {
@@ -1254,7 +1252,8 @@ void SlugSatFSW(struct SCType *S)
 	// Reaction Wheel Power
 	double Inl = 0.009; //No load current
 	for(int i = 0;i < 3;i++) {
-		double v = rwVmax*fabs(rwPWM[i])/100.0 - fabs(w_rw[i])*Ke; // Voltage across the motor (volts)
+		double v = rwVmax*fabs(rwPWM[i])/100.0 - fabs(AC->Whl[i].w)*Ke; // Voltage across the motor (volts)
+		printf("\nRW volts: %4.2f - %4.2f\n", rwVmax*fabs(rwPWM[i])/100.0, fabs(AC->Whl[i].w)*Ke);
 		if(v > 0) {
 			rwPower += v*v / rwRes;
 		}
