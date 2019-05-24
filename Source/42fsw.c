@@ -1034,23 +1034,32 @@ void SlugSatFSW(struct SCType *S)
 	// ---------- PREPARE TO SEND/RECEIVE FROM THE FLAT-SAT ----------
 	int sensorFloats = 18; //number of floats to send
 	int actuatorFloats = 6; //number of floats to receive
-	float serSend[sensorFloats], serRec[actuatorFloats]; //serial send and receive
-	float bSer[3], sunSer[3], gyroSer [3]; //Sensor values to send
-	double rwPWM[3], trPWM[3]; //Actuator pwm and torques
+	float serSend[sensorFloats], serRec[actuatorFloats]; // Serial send and receive
+	float bSer[3], sunSer[3], gyroSer[3]; // Sensor values to send
+	double rwPWM[3], trPWM[3]; // Actuator duty cycles
 
 
 	// Convert sensor data to floats
 	for (int i = 0;i < 3;i++) {
-		bSer[i] = (1e6)*( SC[0].bvb[i]); //Magnetic field in micro Tesla (body frame)
-		bSer[i] = (float)bSer[i]; //Convert to float
-		gyroSer[i] = (float)SC[0].B[0].wn[i]; //Gyro (radians per second)
-		if(SC[0].AC.SunValid) {
-			sunSer[i] = (float)SC[0].AC.svb[i]; //Solar vector (body frame)
-		}
-		else {
-			sunSer[i] = 0; // Simulate darkness
-		}
+		bSer[i] = (1e6)*(SC[0].bvb[i]); // Magnetic field in micro Tesla (body frame)
+		bSer[i] = (float)bSer[i]; // Convert to float
+		//gyroSer[i] = (float)SC[0].B[0].wn[i]; // Gyro (radians per second)
+		gyroSer[i] = (float)AC->Gyro[i].Rate;
+//		if(SC[0].AC.SunValid) {
+//			sunSer[i] = (float)SC[0].AC.svb[i]; // Solar vector (body frame)
+//		}
+//		else {
+//			sunSer[i] = 0; // Simulate darkness
+//		}
 	}
+
+
+	// Find the solar vector from sun sensors
+	// Sensor order -- 0: X+, 1: Y+, 2: X-, 3: Y-, 4: Z+
+	sunSer[0] = (float)(AC->CSS[0].Illum - AC->CSS[2].Illum);
+	sunSer[1] = (float)(AC->CSS[1].Illum - AC->CSS[3].Illum);
+	sunSer[2] = (float)(AC->CSS[4].Illum - AC->CSS[5].Illum);
+
 
 	// Find position in J2000
 	double C_TEME_TETE[3][3], C_TETE_J2000[3][3], posJ2000[3];
@@ -1058,7 +1067,7 @@ void SlugSatFSW(struct SCType *S)
 	MxV(C_TETE_J2000, Orb[0].PosN, posJ2000);
 
 
-	// Compile data into single float
+	// Compile sensor data to send to the ACS
 	for (int i = 0;i < 3;i++) {
 		serSend[i] = bSer[i];
 		serSend[i+3] = gyroSer[i];
@@ -1185,7 +1194,7 @@ void SlugSatFSW(struct SCType *S)
 			vRw[i] = rwVmax*(rwPWM[i]/100.0); // Get voltage across motor
 
 			// Find friction torque from motor
-			double fricTrq = C0 + CV * fabs(w_rw[i]);
+			double fricTrq = 0; //C0 + CV * fabs(w_rw[i]);
 
 			// Motor equation
 			double trq = (Kt/R)*(vRw[i] - w_rw[i]*Ke); // Find torque from DC motor equation

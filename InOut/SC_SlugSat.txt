@@ -10,9 +10,9 @@ CM                            !  Pos of CM or ORIGIN, wrt F
 0.0  0.0  0.0                 !  Vel wrt Formation (m/s), expressed in F
 *************************** Initial Attitude ***************************
 LAL                           ! Ang Vel wrt [NL], Att [QA] wrt [NLF]
-5.0    5.0    5.0             ! Ang Vel (deg/sec)
+0.0    0.0    0.0             ! Ang Vel (deg/sec)
 0.0    0.0    0.0    1.0      ! Quaternion
-0.0    0.0    0.0    123      ! Angles (deg) & Euler Sequence
+135.0    0.0    45.0    123      ! Angles (deg) & Euler Sequence
 ***************************  Dynamics Flags  ***************************
 DYN_JOINT                     ! Rotation STEADY, KIN_JOINT, or DYN_JOINT
 TRUE                          ! Assume constant mass properties
@@ -83,7 +83,7 @@ FALSE  FALSE  FALSE           ! TrnDOF Locked
 0.00                          ! Dynamic Imbalance, g-cm^2
 0                             ! Flex Node Index
 **************************** MTB Parameters ****************************
-3                                   ! Number of MTBs
+3                             ! Number of MTBs
 ==============================  MTB 0  =================================
 1.5                           ! Saturation (A-m^2)
 1.0   0.0   0.0               ! MTB Axis Components, [X, Y, Z]
@@ -104,16 +104,38 @@ FALSE  FALSE  FALSE           ! TrnDOF Locked
  1.0  1.0  1.0                ! Location in B0, m
 0                             ! Flex Node Index
 ******************************* Gyro ************************************
-0                                ! Number of Gyro Axes
+3                             ! Number of Gyro Axes
 ============================== Axis 0 ===================================
 0.1                           ! Sample Time,sec
 1.0  0.0  0.0                 ! Axis expressed in Body Frame
-1000.0                        ! Max Rate, deg/sec
-100.0                         ! Scale Factor Error, ppm
-1.0                           ! Quantization, arcsec 
-0.07                          ! Angle Random Walk (deg/rt-hr)
+2000.0                        ! Max Rate from UM7 datasheet (deg/sec)
+100.0                         ! Scale Factor Error (ppm)
+1.0                           ! Quantization (arcsec/s)
+0.3                           ! Angle Random Walk from UM7 datsheet (deg/sqrt-hr)
 0.1  1.0                      ! Bias Stability (deg/hr) over timespan (hr)
-0.1                           ! Angle Noise, arcsec RMS
+0.1                           ! Angle Noise (arcsec/s RMS)
+0.1                           ! Initial Bias (deg/hr)
+0                             ! Flex Node Index
+============================== Axis 1 ===================================
+0.1                           ! Sample Time,sec
+0.0  1.0  0.0                 ! Axis expressed in Body Frame
+2000.0                        ! Max Rate from UM7 datasheet (deg/sec)
+100.0                         ! Scale Factor Error (ppm)
+1.0                           ! Quantization (arcsec/s)
+0.3                           ! Angle Random Walk from UM7 datsheet (deg/sqrt-hr)
+0.1  1.0                      ! Bias Stability (deg/hr) over timespan (hr)
+0.1                           ! Angle Noise (arcsec/s RMS)
+0.1                           ! Initial Bias (deg/hr)
+0                             ! Flex Node Index
+============================== Axis 2 ===================================
+0.1                           ! Sample Time,sec
+0.0  0.0  1.0                 ! Axis expressed in Body Frame
+2000.0                        ! Max Rate from UM7 datasheet (deg/sec)
+100.0                         ! Scale Factor Error (ppm)
+1.0                           ! Quantization (arcsec/s)
+0.3                           ! Angle Random Walk from UM7 datsheet (deg/sqrt-hr)
+0.1  1.0                      ! Bias Stability (deg/hr) over timespan (hr)
+0.1                           ! Angle Noise (arcsec/s RMS)
 0.1                           ! Initial Bias (deg/hr)
 0                             ! Flex Node Index
 *************************** Magnetometer ********************************
@@ -122,17 +144,52 @@ FALSE  FALSE  FALSE           ! TrnDOF Locked
 0.1                           ! Sample Time,sec
 1.0  0.0  0.0                 ! Axis expressed in Body Frame
 60.0E-6                       ! Saturation, Tesla
-0.0                           ! Scale Factor Error, ppm
-1.0E-6                        ! Quantization, Tesla 
+10000.0                       ! Scale Factor Error, ppm
+1.0E-6                        ! Quantization, Tesla
 1.0E-6                        ! Noise, Tesla RMS
 0                             ! Flex Node Index
 *********************** Coarse Sun Sensor *******************************
-0                             ! Number of Coarse Sun Sensors
+6                             ! Number of Coarse Sun Sensors
 ============================== CSS 0 ====================================
 0.1                           ! Sample Time,sec
-1.0  1.0  1.0                 ! Axis expressed in Body Frame
+1.0  0.0  0.0                 ! Axis expressed in Body Frame
 90.0                          ! Half-cone Angle, deg
 1.0                           ! Scale Factor
+0.001                         ! Quantization
+0                             ! Flex Node Index
+============================== CSS 1 ====================================
+0.1                           ! Sample Time,sec
+0.0  1.0  0.0                 ! Axis expressed in Body Frame
+90.0                          ! Half-cone Angle, deg
+1.5                           ! Scale Factor
+0.001                         ! Quantization
+0                             ! Flex Node Index
+============================== CSS 2 ====================================
+0.1                           ! Sample Time,sec
+-1.0  0.0  0.0                ! Axis expressed in Body Frame
+90.0                          ! Half-cone Angle, deg
+0.95                           ! Scale Factor
+0.001                         ! Quantization
+0                             ! Flex Node Index
+============================== CSS 3 ====================================
+0.1                           ! Sample Time,sec
+0.0  -1.0  0.0                ! Axis expressed in Body Frame
+90.0                          ! Half-cone Angle, deg
+1.5                           ! Scale Factor
+0.001                         ! Quantization
+0                             ! Flex Node Index
+============================== CSS 4 ====================================
+0.1                           ! Sample Time,sec
+0.0  0.0  1.0                 ! Axis expressed in Body Frame
+90.0                          ! Half-cone Angle, deg
+0.95                           ! Scale Factor
+0.001                         ! Quantization
+0                             ! Flex Node Index
+============================== CSS 5 ====================================
+0.1                           ! Sample Time,sec
+0.0  0.0  -1.0                ! Axis expressed in Body Frame
+90.0                          ! Half-cone Angle, deg
+1.5                           ! Scale Factor
 0.001                         ! Quantization
 0                             ! Flex Node Index
 ************************* Fine Sun Sensor *******************************
