@@ -1013,7 +1013,7 @@ void SlugSatFSW(struct SCType *S)
 	struct AcType *AC; //Attitude control type
 
 	// Get AC pointer
-		AC = &S->AC;
+	AC = &S->AC;
 
 
 	//Actuator variables
@@ -1022,13 +1022,13 @@ void SlugSatFSW(struct SCType *S)
 	double maxDip = 2.0;
 
 	// Initialize reaction wheel speed
-	static int init_run = 0;
-	if(init_run == 0){
-		for(int i = 0;i < 3;i++) {
-			AC->Whl[i].w = w_rw[i];
-		}
-		init_run = 1;
-	}
+//	static int init_run = 0;
+//	if(init_run == 0){
+//		for(int i = 0;i < 3;i++) {
+//			AC->Whl[i].w = w_rw[i];
+//		}
+//		init_run = 1;
+//	}
 
 
 	// ---------- PREPARE TO SEND/RECEIVE FROM THE FLAT-SAT ----------
@@ -1041,16 +1041,8 @@ void SlugSatFSW(struct SCType *S)
 
 	// Convert sensor data to floats
 	for (int i = 0;i < 3;i++) {
-		bSer[i] = (1e6)*(SC[0].bvb[i]); // Magnetic field in micro Tesla (body frame)
-		bSer[i] = (float)bSer[i]; // Convert to float
-		//gyroSer[i] = (float)SC[0].B[0].wn[i]; // Gyro (radians per second)
-		gyroSer[i] = (float)AC->Gyro[i].Rate;
-//		if(SC[0].AC.SunValid) {
-//			sunSer[i] = (float)SC[0].AC.svb[i]; // Solar vector (body frame)
-//		}
-//		else {
-//			sunSer[i] = 0; // Simulate darkness
-//		}
+		bSer[i] = (float)(1e6)*(AC->MAG[i].Field); // Magnetic field in micro Tesla (body frame)
+		gyroSer[i] = (float)AC->Gyro[i].Rate; // Get gyro reading in rad/s (body frame)
 	}
 
 
@@ -1138,19 +1130,19 @@ void SlugSatFSW(struct SCType *S)
 	
 	//Print RX data
 	printf("\n\nRX:\n");
-	
+
 	//Reaction Wheel PWM
 	printf("\nReaction Wheel PWM\t");
 	for(int i = 0;i < 3;i++) {
 		printf("%4.2f\t", serRec[i]);
 	}
-	
+
 	//Torque Rod PWM
 	printf("\nTorque Rod PWM\t\t");
 	for(int i = 0;i < 3;i++) {
 		printf("%4.2f\t", serRec[i+3]);
-	}	
-			
+	}
+
 
 	if(read_string_err == 0 && strlen(string) > 0) {
 		printf("\n\nPRINT FROM STM32\n%s\nEND PRINT FROM STM32\n", string);
@@ -1164,18 +1156,6 @@ void SlugSatFSW(struct SCType *S)
 		trPWM[i] = (double)serRec[i+3]; // Magnetic torque bar
 		if(trPWM[i] > 100.0) trPWM[i] = 100.0;
 		else if(trPWM[i] < -100.0) trPWM[i] = -100.0;
-	}
-
-	// Print reaction wheel PWM
-	printf("\nReaction Wheel PWM\t");
-	for(int i = 0;i < 3;i++) {
-		printf("%4.2f\t", rwPWM[i]);
-	}
-
-	// Print torque rod PWM
-	printf("\nTorque Rod PWM\t\t");
-	for(int i = 0;i < 3;i++) {
-		printf("%6.4f\t", trPWM[i]);
 	}
 
 
@@ -1264,7 +1244,7 @@ void SlugSatFSW(struct SCType *S)
 		double v = rwVmax*fabs(rwPWM[i])/100.0 - fabs(AC->Whl[i].w)*Ke; // Voltage across the motor (volts)
 		printf("\nRW volts: %4.2f - %4.2f\n", rwVmax*fabs(rwPWM[i])/100.0, fabs(AC->Whl[i].w)*Ke);
 		if(v > 0) {
-			rwPower += v*v / rwRes;
+			rwPower += v*(v/rwRes + Inl);
 		}
 
 	}
@@ -1275,7 +1255,7 @@ void SlugSatFSW(struct SCType *S)
 		double v = trVmax* fabs(trPWM[i]) / 100.0;
 		trPower += (v*v / trRes);
 	}
-	printf("\n\nTorque Rod Power:\t %f [mW]", 1000*trPower);
+	printf("\nTorque Rod Power:\t %f [mW]", 1000*trPower);
 
 	// Total Power
 	totalPower = rwPower + trPower;
@@ -1324,8 +1304,6 @@ void SlugSatFSW(struct SCType *S)
 
 	fprintf(stateEnergy, "%lf\t %lf\t%lf\n", detumbleEnergy, reorientEnergy, stabilizationEnergy);
 	fprintf(tEnergy, "%lf\n", totalEnergy);
-
-
 }
 
 

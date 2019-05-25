@@ -139,14 +139,30 @@ FALSE  FALSE  FALSE           ! TrnDOF Locked
 0.1                           ! Initial Bias (deg/hr)
 0                             ! Flex Node Index
 *************************** Magnetometer ********************************
-0                             ! Number of Magnetometer Axes
+3                             ! Number of Magnetometer Axes
 ============================== Axis 0 ===================================
 0.1                           ! Sample Time,sec
 1.0  0.0  0.0                 ! Axis expressed in Body Frame
-60.0E-6                       ! Saturation, Tesla
-10000.0                       ! Scale Factor Error, ppm
-1.0E-6                        ! Quantization, Tesla
-1.0E-6                        ! Noise, Tesla RMS
+1200.0E-6                     ! Saturation, Tesla
+1000.0                        ! Scale Factor Error, ppm
+1.0E-9                        ! Quantization, Tesla
+1.0E-9                        ! Noise, Tesla RMS
+0                             ! Flex Node Index
+============================== Axis 1 ===================================
+0.1                           ! Sample Time,sec
+0.0  1.0  0.0                 ! Axis expressed in Body Frame
+1200.0E-6                     ! Saturation, Tesla
+1000.0                        ! Scale Factor Error, ppm
+1.0E-9                        ! Quantization, Tesla
+1.0E-9                        ! Noise, Tesla RMS
+0                             ! Flex Node Index
+============================== Axis 2 ===================================
+0.1                           ! Sample Time,sec
+0.0  0.0  1.0                 ! Axis expressed in Body Frame
+1200.0E-6                     ! Saturation, Tesla
+1000.0                        ! Scale Factor Error, ppm
+1.0E-9                        ! Quantization, Tesla
+1.0E-9                        ! Noise, Tesla RMS
 0                             ! Flex Node Index
 *********************** Coarse Sun Sensor *******************************
 6                             ! Number of Coarse Sun Sensors
@@ -154,42 +170,42 @@ FALSE  FALSE  FALSE           ! TrnDOF Locked
 0.1                           ! Sample Time,sec
 1.0  0.0  0.0                 ! Axis expressed in Body Frame
 90.0                          ! Half-cone Angle, deg
-1.0                           ! Scale Factor
+1.00                          ! Scale Factor
 0.001                         ! Quantization
 0                             ! Flex Node Index
 ============================== CSS 1 ====================================
 0.1                           ! Sample Time,sec
 0.0  1.0  0.0                 ! Axis expressed in Body Frame
 90.0                          ! Half-cone Angle, deg
-1.5                           ! Scale Factor
+1.00                           ! Scale Factor
 0.001                         ! Quantization
 0                             ! Flex Node Index
 ============================== CSS 2 ====================================
 0.1                           ! Sample Time,sec
 -1.0  0.0  0.0                ! Axis expressed in Body Frame
 90.0                          ! Half-cone Angle, deg
-0.95                           ! Scale Factor
+1.00                          ! Scale Factor
 0.001                         ! Quantization
 0                             ! Flex Node Index
 ============================== CSS 3 ====================================
 0.1                           ! Sample Time,sec
 0.0  -1.0  0.0                ! Axis expressed in Body Frame
 90.0                          ! Half-cone Angle, deg
-1.5                           ! Scale Factor
+1.00                          ! Scale Factor
 0.001                         ! Quantization
 0                             ! Flex Node Index
 ============================== CSS 4 ====================================
 0.1                           ! Sample Time,sec
 0.0  0.0  1.0                 ! Axis expressed in Body Frame
 90.0                          ! Half-cone Angle, deg
-0.95                           ! Scale Factor
+1.00                          ! Scale Factor
 0.001                         ! Quantization
 0                             ! Flex Node Index
 ============================== CSS 5 ====================================
 0.1                           ! Sample Time,sec
 0.0  0.0  -1.0                ! Axis expressed in Body Frame
 90.0                          ! Half-cone Angle, deg
-1.5                           ! Scale Factor
+1.00                          ! Scale Factor
 0.001                         ! Quantization
 0                             ! Flex Node Index
 ************************* Fine Sun Sensor *******************************
