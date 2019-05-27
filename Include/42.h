@@ -47,7 +47,9 @@
 ** #endif
 */
 
-port_t serial_port;
+/* SlugSat custom variables */
+EXTERN port_t serial_port;
+EXTERN double pointing_err; /* In degrees */
 
 /* Number of Reference Orbits */
 EXTERN long Norb;
