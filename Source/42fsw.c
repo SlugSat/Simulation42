@@ -1375,7 +1375,7 @@ void SlugSatFSW(struct SCType *S)
 	}
 	else if(orbit_angle >= orbit_start_angle && last_orbit_angle < orbit_start_angle) {
 		// Craft has finished an orbit
-		fprintf(orbitMaster, "========== ORBIT NUMBER %d ==========\n", orbit_num);
+		fprintf(orbitMaster, "========== ORBIT NUMBER %ld ==========\n", orbit_num);
 		fprintf(orbitMaster, "Max pointing error: %7.4f [Deg]\n", max_err);
 		fprintf(orbitMaster, "Avg pointing error: %7.4f [Deg]\n", cumulative_err/orbit_time);
 		fprintf(orbitMaster, "Max power: %7.4f [mW]\n", max_power);
@@ -1384,7 +1384,7 @@ void SlugSatFSW(struct SCType *S)
 		fprintf(orbitMaster, "\t1 deg\t5deg\t10deg\t20deg\n");
 		fprintf(orbitMaster, "\t%6.2f\t%6.2f\t%6.2f\t%6.2f\n",
 				below_1deg/orbit_time, below_5deg/orbit_time, below_10deg/orbit_time, below_20deg/orbit_time);
-		fprintf(orbitMaster, "Steps last orbit: %d\n", orbit_steps);
+		fprintf(orbitMaster, "Steps last orbit: %ld\n", orbit_steps);
 		fprintf(orbitMaster, "\n");
 
 		orbit_num++;
