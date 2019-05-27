@@ -1036,7 +1036,7 @@ void SlugSatFSW(struct SCType *S)
 	int actuatorFloats = 6; //number of floats to receive
 	float serSend[sensorFloats], serRec[actuatorFloats]; // Serial send and receive
 	float bSer[3], sunSer[3], gyroSer[3]; // Sensor values to send
-	double rwPWM[3], trPWM[3]; // Actuator duty cycles
+	double rwPWM[3], trPWM[3]; // Actuator duty cycserSendles
 
 
 	// Convert sensor data to floats
@@ -1264,20 +1264,20 @@ void SlugSatFSW(struct SCType *S)
 	// Print instantaneous power to file
 
 	// Create and initialize files
-	static FILE *instPower, *instP, *stateEnergy, *tEnergy;
+	static FILE *instPower, *stateEnergy, *tEnergy, *pointingErr, *orbitMaster;
 	static int First = 1;
 
 	if (First) {
 		First = 0;
-		instPower = FileOpen(InOutPath,"instPower.42","wt");
-		instP = FileOpen(InOutPath,"instP.42","wt");
-		stateEnergy = FileOpen(InOutPath,"stateEnergy.42","wt");
-		tEnergy = FileOpen(InOutPath,"totalEnergy.42","wt");
+		instPower = FileOpen(InOutPath,"instPower.42","w");
+		stateEnergy = FileOpen(InOutPath,"stateEnergy.42","w");
+		tEnergy = FileOpen(InOutPath,"totalEnergy.42","w");
+		pointingErr = FileOpen(InOutPath,"pointingErr.42","w");
+		orbitMaster = FileOpen(InOutPath,"orbitMaster.42","w");
 	}
 
 	// Print to file
-	fprintf(instPower, "%lf\t %lf\t %lf\n",rwPower, trPower, totalPower);
-	fprintf(instP, "%lf\n", totalPower);
+	fprintf(instPower, "%lf\t %lf\t %lf\n", rwPower, trPower, totalPower);
 
 
 	// Detumbling power
@@ -1304,6 +1304,111 @@ void SlugSatFSW(struct SCType *S)
 
 	fprintf(stateEnergy, "%lf\t %lf\t%lf\n", detumbleEnergy, reorientEnergy, stabilizationEnergy);
 	fprintf(tEnergy, "%lf\n", totalEnergy);
+
+
+	/***** FIND POINTING ERROR *****/
+	double ZhatB[3] = {0, 0, 1}, L[3], B[3], dot;
+	MTxV(SC[0].B->CN, ZhatB, B);
+
+	for(int i=0;i<3;i++){ //Set L and B axis from POV
+		L[i] = Orb[0].PosN[i];
+	}
+
+	//Find angle between vectors using dot product formula
+	dot = VoV(L, B) / (MAGV(L) * MAGV(B));
+	pointing_err = acos(dot);
+	pointing_err = (180*pointing_err) / Pi;
+
+
+	/***** PER ORBIT FILE OUTPUTS *****/
+	static double orbit_start_angle = -1, last_orbit_angle, orbit_time = 0;
+	static double max_err = 0, cumulative_err = 0;
+	static double below_1deg, below_5deg, below_10deg, below_20deg;
+	static double max_power = 0, cumulative_power = 0;
+	static long orbit_num = 0, orbit_steps = 0;
+
+	double XhatN[3] = {1, 0, 0}, orbit_angle;
+	double P[3] = {Orb[0].PosN[0], Orb[0].PosN[1], 0};
+
+	// Error measurement
+	fprintf(pointingErr, "%8.4f\n", pointing_err);
+
+	if(pointing_err > max_err) {
+		max_err = pointing_err;
+	}
+	cumulative_err += pointing_err*AC->DT;
+
+	if(pointing_err < 1.0) {
+		below_1deg += AC->DT;
+	}
+	if(pointing_err < 5.0) {
+		below_5deg += AC->DT;
+	}
+	if(pointing_err < 10.0) {
+		below_10deg += AC->DT;
+	}
+	if(pointing_err < 20.0) {
+		below_20deg += AC->DT;
+	}
+
+	// Power measurement
+	if(totalPower > max_power) {
+		max_power = totalPower;
+	}
+	cumulative_power += totalPower*AC->DT;
+
+
+	orbit_time += AC->DT;
+	orbit_steps++;
+
+	//Find angle between vectors using dot product formula
+	orbit_angle = acos(Orb[0].PosN[0] / (MAGV(P)));
+	orbit_angle = (180*orbit_angle) / Pi;
+
+	if(P[1] < 0) {
+		orbit_angle = 360.0 - orbit_angle;
+	}
+
+	if(orbit_start_angle == -1) {
+		orbit_start_angle = orbit_angle;
+		last_orbit_angle = orbit_angle;
+	}
+	else if(orbit_angle >= orbit_start_angle && last_orbit_angle < orbit_start_angle) {
+		// Craft has finished an orbit
+		fprintf(orbitMaster, "========== ORBIT NUMBER %d ==========\n", orbit_num);
+		fprintf(orbitMaster, "Max pointing error: %7.4f [Deg]\n", max_err);
+		fprintf(orbitMaster, "Avg pointing error: %7.4f [Deg]\n", cumulative_err/orbit_time);
+		fprintf(orbitMaster, "Max power: %7.4f [mW]\n", max_power);
+		fprintf(orbitMaster, "Avg power: %7.4f [mW]\n", cumulative_power/orbit_time);
+		fprintf(orbitMaster, "Percent time below:\n");
+		fprintf(orbitMaster, "\t1 deg\t5deg\t10deg\t20deg\n");
+		fprintf(orbitMaster, "\t%6.2f\t%6.2f\t%6.2f\t%6.2f\n",
+				below_1deg/orbit_time, below_5deg/orbit_time, below_10deg/orbit_time, below_20deg/orbit_time);
+		fprintf(orbitMaster, "Steps last orbit: %d\n", orbit_steps);
+		fprintf(orbitMaster, "\n");
+
+		orbit_num++;
+		orbit_steps = 0;
+		orbit_time = 0;
+		max_err = 0;
+		cumulative_err = 0;
+		max_power = 0;
+		cumulative_power = 0;
+		below_1deg = 0;
+		below_5deg = 0;
+		below_10deg = 0;
+		below_20deg = 0;
+	}
+	last_orbit_angle = orbit_angle;
+
+	//Average pointing error for orbit
+
+	//Max pointing error for orbit
+
+	//Orbital Summary
+	//Avg power
+	//Max power
+
 }
 
 

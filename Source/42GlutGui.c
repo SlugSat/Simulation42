@@ -889,22 +889,9 @@ void DrawCamHUD(void)
 	  
 	  // Get body Zhat and craft position in N frame
 	  glColor4fv(BBrightColor);
-	  double errr[3], ZhatB[3] = {0, 0, 1}, L[3], B[3], dot, ang;
-
-
-	  MTxV(SC[0].B->CN, ZhatB, B);
-
-	  for(i=0;i<3;i++){ //Set L and B axis from POV
-	    L[i] = Orb[0].PosN[i];
-	  }
-
-	  //Find angle between vectors using dot product formula
-	  dot = VoV(L, B) / ( MAGV(L) * MAGV(B) );
-	  ang = acos(dot);
-	  ang = (180*ang) / Pi;
 		
 	  //Print angle
-	  sprintf(s,"Pointing error: [%5.4f degrees]", ang);
+	  sprintf(s,"Pointing error: [%5.4f degrees]", pointing_err);
 	  glRasterPos2i(CamWidth-300,CamHeight-100);
 	  DrawBitmapString(GLUT_BITMAP_8_BY_13,s);
 	 
