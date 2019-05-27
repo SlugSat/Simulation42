@@ -1174,7 +1174,7 @@ void SlugSatFSW(struct SCType *S)
 			vRw[i] = rwVmax*(rwPWM[i]/100.0); // Get voltage across motor
 
 			// Find friction torque from motor
-			double fricTrq = 0; //C0 + CV * fabs(w_rw[i]);
+			double fricTrq = C0 + CV * fabs(w_rw[i]);
 
 			// Motor equation
 			double trq = (Kt/R)*(vRw[i] - w_rw[i]*Ke); // Find torque from DC motor equation
@@ -1194,7 +1194,7 @@ void SlugSatFSW(struct SCType *S)
 			double w_rw_dot = rwTrq[i]/AC->Whl[i].J; // Find acceleration from torque
 			double delta_w_rw = w_rw_dot*sample_dt; // Find change in motor speed this timestep
 
-			// Check if friction would cause the motor to stop
+			// Check if friction would cause the motor to stop on this step
 			if(sign(w_rw[i] + delta_w_rw) != sign(w_rw[i]) && fabs(trq) <= fricTrq) {
 				w_rw[i] = 0;
 			}
@@ -1205,10 +1205,10 @@ void SlugSatFSW(struct SCType *S)
 	}
 
 	// Send torque to achieve the correct changed in rotational inertia in the next sim step
-	//printf("\nw_rw:\t\tWhl.w:\n");
+	printf("\nw_rw:\t\tWhl.w:\n");
 	for(int i = 0;i < 3;i++) {
 		AC->Whl[i].Tcmd = AC->Whl[i].J*(w_rw[i] - w_rw_old[i])/AC->DT;
-		//printf("%4.4e\t%4.4e\n", w_rw[i], AC->Whl[i].w);
+		printf("%4.4e\t%4.4e\n", w_rw_old[i], AC->Whl[i].w);
 	}
 	printf("\n");
 
@@ -1236,15 +1236,15 @@ void SlugSatFSW(struct SCType *S)
 	// Actuator parameters, rwVmax = 8.0, trVmax = 3.3; Voltage rails
 	double trRes = 15.0; //Estimated Torque rod resistance (Ohms)
 	double rwRes = 92.7; //Faulhaber 1509 terminal resistance
-
+	double rwDriverPower = rwVmax*0.010; // Approximate power consumed by the motor driver board
 
 	// Reaction Wheel Power
 	double Inl = 0.009; //No load current
 	for(int i = 0;i < 3;i++) {
 		double v = rwVmax*fabs(rwPWM[i])/100.0 - fabs(AC->Whl[i].w)*Ke; // Voltage across the motor (volts)
-		printf("\nRW volts: %4.2f - %4.2f\n", rwVmax*fabs(rwPWM[i])/100.0, fabs(AC->Whl[i].w)*Ke);
+		//printf("\nRW volts: %4.2f - %4.2f\n", rwVmax*fabs(rwPWM[i])/100.0, fabs(AC->Whl[i].w)*Ke);
 		if(v > 0) {
-			rwPower += v*(v/rwRes + Inl);
+			rwPower += rwVmax*v/rwRes + rwDriverPower;
 		}
 
 	}
