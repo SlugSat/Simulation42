@@ -1,7 +1,7 @@
 <<<<<<<<<<<<<<<<<  42: The Mostly Harmless Simulator  >>>>>>>>>>>>>>>>>
 ************************** Simulation Control **************************
 FAST                            !  Time Mode (FAST, REAL, or EXTERNAL)
-60000.0      1.0                !  Sim Duration, Step Size [sec]
+100000.0      1.0               !  Sim Duration, Step Size [sec]
 100.0                           !  File Output Interval [sec]
 TRUE                            !  Graphics Front End?
 Inp_Cmd.txt                     !  Command Script File Name
@@ -23,34 +23,34 @@ IGRF                            !  Magfield (NONE,DIPOLE,IGRF)
 2   0                           !  Earth Gravity Model N and M (<=18)
 2   0                           !  Mars Gravity Model N and M (<=18)
 2   0                           !  Luna Gravity Model N and M (<=18)
-TRUE   TRUE                   !  Aerodynamic Forces & Torques (Shadows)
-TRUE                           !  Gravity Gradient Torques
-TRUE   TRUE                   !  Solar Pressure Forces & Torques (Shadows)
-TRUE                           !  Gravity Perturbation Forces
+TRUE   TRUE                     !  Aerodynamic Forces & Torques (Shadows)
+TRUE                            !  Gravity Gradient Torques
+TRUE   TRUE                     !  Solar Pressure Forces & Torques (Shadows)
+TRUE                            !  Gravity Perturbation Forces
 FALSE                           !  Passive Joint Torques
 FALSE                           !  Thruster Plume Forces & Torques
-TRUE                           !  RWA Imbalance Forces and Torques
+TRUE                            !  RWA Imbalance Forces and Torques
 FALSE                           !  Contact Forces and Torques
 FALSE                           !  CFD Slosh Forces and Torques
 FALSE                           !  Output Environmental Torques to Files
 ********************* Celestial Bodies of Interest *********************
-FALSE                            !  Mercury
-FALSE                            !  Venus
+FALSE                           !  Mercury
+FALSE                           !  Venus
 TRUE                            !  Earth and Luna
-FALSE                            !  Mars and its moons
-FALSE                            !  Jupiter and its moons
-FALSE                            !  Saturn and its moons
-FALSE                            !  Uranus and its moons
-FALSE                            !  Neptune and its moons
-FALSE                            !  Pluto and its moons
-FALSE                            !  Asteroids and Comets
+FALSE                           !  Mars and its moons
+FALSE                           !  Jupiter and its moons
+FALSE                           !  Saturn and its moons
+FALSE                           !  Uranus and its moons
+FALSE                           !  Neptune and its moons
+FALSE                           !  Pluto and its moons
+FALSE                           !  Asteroids and Comets
 ***************** Lagrange Point Systems of Interest ******************
 TRUE                            !  Earth-Moon
 TRUE                            !  Sun-Earth
 FALSE                           !  Sun-Jupiter
 ************************* Ground Stations ***************************
 5                                            ! Number of Ground Stations
-TRUE  EARTH  -122.0  37.0  "UCSC Ground Station"            ! Exists, World, Lng, Lat, Label
+TRUE  EARTH  -122.0  37.0  "UCSC (W6SLG)"     ! Exists, World, Lng, Lat, Label
 FALSE  EARTH  -155.6 19.0  "South Point"      ! Exists, World, Lng, Lat, Label
 FALSE  EARTH  115.4 -29.0  "Dongara"          ! Exists, World, Lng, Lat, Label
 FALSE  EARTH  -71.0 -33.0  "Santiago"         ! Exists, World, Lng, Lat, Label

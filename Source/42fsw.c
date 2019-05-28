@@ -1016,19 +1016,10 @@ void SlugSatFSW(struct SCType *S)
 	AC = &S->AC;
 
 
-	//Actuator variables
+	// Actuator variables
 	static double w_rw[3] = {0, 0, 0}; // Reaction wheel speed
 	double rwVmax = 8.0, trVmax = 3.3; // Voltage rails
-	double maxDip = 2.0;
-
-	// Initialize reaction wheel speed
-//	static int init_run = 0;
-//	if(init_run == 0){
-//		for(int i = 0;i < 3;i++) {
-//			AC->Whl[i].w = w_rw[i];
-//		}
-//		init_run = 1;
-//	}
+	double maxDip = 2.0; // Torque rod max dipole moment
 
 
 	// ---------- PREPARE TO SEND/RECEIVE FROM THE FLAT-SAT ----------
@@ -1085,68 +1076,8 @@ void SlugSatFSW(struct SCType *S)
 	}
 
 	// Receive string from STM32 (for debugging purposes)
-	char string[500];
-	int read_string_err = serialReceiveString(serial_port, (uint8_t*)string);
-
-
-	// ---------- PRINT DATA TO TERMINAL ----------
-	printf("\nTX:\n");
-	
-	// Print mag field
-	printf("\nMag Field (micro Tesla):\t");
-	for(int i = 0;i < 3;i++) {
-		printf("%6.2f\t\t", serSend[i]);
-	}
-	
-	// Print gyro
-	printf("\nGyro (rad/sec):\t\t\t");
-	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", serSend[i+3]);
-	}
-	
-	// Print solar vector
-	printf("\nSolar Vector (normalized): \t");
-	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", serSend[i+6]);
-	}
-
-	// Print Pos J2000
-	printf("\nPos J2000 (km):\t\t\t");
-	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", serSend[i+9]);
-	}
-	
-	// Print w_rw
-	printf("\nw_rw (rad/sec):\t\t\t");
-	for(int i = 0;i < 3;i++) {
-		printf("%6.2f\t\t", serSend[i+12]);
-	}
-	
-	// Print time
-	printf("\nTime:\t\t\t\t");
-	for(int i = 0;i < 2;i++) {
-		printf("%4.4e\t", serSend[i+15]);
-	}
-	
-	//Print RX data
-	printf("\n\nRX:\n");
-
-	//Reaction Wheel PWM
-	printf("\nReaction Wheel PWM\t");
-	for(int i = 0;i < 3;i++) {
-		printf("%4.2f\t", serRec[i]);
-	}
-
-	//Torque Rod PWM
-	printf("\nTorque Rod PWM\t\t");
-	for(int i = 0;i < 3;i++) {
-		printf("%4.2f\t", serRec[i+3]);
-	}
-
-
-	if(read_string_err == 0 && strlen(string) > 0) {
-		printf("\n\nPRINT FROM STM32\n%s\nEND PRINT FROM STM32\n", string);
-	}
+	char printstring[500];
+	int read_string_err = serialReceiveString(serial_port, (uint8_t*)printstring);
 
 	// Get reaction wheel and torque rod PWMs
 	for(int i = 0;i < 3;i++) {
@@ -1218,7 +1149,22 @@ void SlugSatFSW(struct SCType *S)
 	for(int i = 0;i < 3;i++){
 		AC->MTB[i].Mcmd = maxDip*trPWM[i]/100.0;
 	}
-	
+
+
+	// ---------- GET CRAFT ACS STATE ----------
+	char s[300], state_name[10];
+	static char state_names[10][] = {"Detumble", "Wait", "Reorient", "Stabilize"};
+	int acs_state = -1;
+
+	if(sscanf(printstring, "%s -- %s\n", s, state_name) == 2) {
+		for(int i = 0;i < 4;i++) {
+			if(strcmp(state_name, state_names[i] == 0)) {
+				acs_state = i;
+				break;
+			}
+		}
+	}
+
 
 	// ---------- CALCULATE POWER ----------
 	//Power Variables
@@ -1227,11 +1173,7 @@ void SlugSatFSW(struct SCType *S)
 	double trPower; // Instantaneous power used by the torque rods (W)
 	double totalPower = 0; // Total instantaneous power used by the ACS (W)
 
-	char s1[300], s2[10], state[10];
-	char detumble[] = "Detumble", reorient[] = "Reorient", stabilize[] = "Stabilize";
 	
-	// Find ACS state
-	sscanf(string, "%s -- %s\n", s1, state);
 	
 	// Actuator parameters, rwVmax = 8.0, trVmax = 3.3; Voltage rails
 	double trRes = 15.0; //Estimated Torque rod resistance (Ohms)
@@ -1261,56 +1203,26 @@ void SlugSatFSW(struct SCType *S)
 	totalPower = rwPower + trPower;
 	printf("\nTotal Power:\t\t%6.3f [mW]\n", 1000*totalPower);
 
-	// Print instantaneous power to file
-
-	// Create and initialize files
-	static FILE *instPower, *stateEnergy, *tEnergy, *pointingErr, *rwSpeeds, *orbitMaster;
-	static int First = 1;
-
-	if (First) {
-		First = 0;
-		instPower = FileOpen(InOutPath,"instPower.42","w");
-		stateEnergy = FileOpen(InOutPath,"stateEnergy.42","w");
-		tEnergy = FileOpen(InOutPath,"totalEnergy.42","w");
-		pointingErr = FileOpen(InOutPath,"pointingErr.42","w");
-		rwSpeeds = FileOpen(InOutPath,"rwSpeeds.42","w");
-		orbitMaster = FileOpen(InOutPath,"orbitMaster.42","w");
-	}
-
-	// Print power to file
-	fprintf(instPower, "%lf\t %lf\t %lf\n", rwPower, trPower, totalPower);
-
-
-	// Print reaction wheel speeds to file
-	fprintf(rwSpeeds, "%lf\t %lf\t %lf\n", AC->Whl[0].w, AC->Whl[1].w, AC->Whl[2].w);
-
-	// Detumbling power
-	if (strcmp(detumble, state) == 0){
+	// Detumbling Energy
+	if (acs_state == 0){
 		detumbleEnergy += totalPower*AC->DT;
 	}
 
-	// Orientation Power
-	if (strcmp(reorient, state) == 0){
+	// Orientation Energy
+	if (acs_state == 2){
 		reorientEnergy += totalPower*AC->DT;
 	}
-	
-	// Stabilization Power
-	if (strcmp(stabilize, state) == 0){
+
+	// Stabilization Energy
+	if (acs_state == 3){
 		stabilizationEnergy += totalPower*AC->DT;
 	}
 
-
+	// Total Energy
 	totalEnergy = detumbleEnergy + reorientEnergy + stabilizationEnergy;
 
-	//Print out power consumption for each state
-	printf("\nDetumbling Energy: %3.3f [J]\t \nReorientation Energy: %3.3f [J]\t \nStabilization Energy: %3.3f [J]\n",
-			detumbleEnergy, reorientEnergy, stabilizationEnergy);
 
-	fprintf(stateEnergy, "%lf\t %lf\t%lf\n", detumbleEnergy, reorientEnergy, stabilizationEnergy);
-	fprintf(tEnergy, "%lf\n", totalEnergy);
-
-
-	/***** FIND POINTING ERROR *****/
+	// ---------- FIND POINTING ERROR ----------
 	double ZhatB[3] = {0, 0, 1}, L[3], B[3], dot;
 	MTxV(SC[0].B->CN, ZhatB, B);
 
@@ -1324,8 +1236,117 @@ void SlugSatFSW(struct SCType *S)
 	pointing_err = (180*pointing_err) / Pi;
 
 
-	/***** PER ORBIT FILE OUTPUTS *****/
-	static double orbit_start_angle = -1, last_orbit_angle, orbit_time = 0;
+	// ---------- PRINT DATA TO TERMINAL ----------
+	printf("\nTX:\n");
+
+	// Print mag field
+	printf("\nMag Field (micro Tesla):\t");
+	for(int i = 0;i < 3;i++) {
+		printf("%6.2f\t\t", serSend[i]);
+	}
+
+	// Print gyro
+	printf("\nGyro (rad/sec):\t\t\t");
+	for(int i = 0;i < 3;i++) {
+		printf("%4.4e\t", serSend[i+3]);
+	}
+
+	// Print solar vector
+	printf("\nSolar Vector (normalized): \t");
+	for(int i = 0;i < 3;i++) {
+		printf("%4.4e\t", serSend[i+6]);
+	}
+
+	// Print Pos J2000
+	printf("\nPos J2000 (km):\t\t\t");
+	for(int i = 0;i < 3;i++) {
+		printf("%4.4e\t", serSend[i+9]);
+	}
+
+	// Print w_rw
+	printf("\nw_rw (rad/sec):\t\t\t");
+	for(int i = 0;i < 3;i++) {
+		printf("%6.2f\t\t", serSend[i+12]);
+	}
+
+	// Print time
+	printf("\nTime:\t\t\t\t");
+	for(int i = 0;i < 2;i++) {
+		printf("%4.4e\t", serSend[i+15]);
+	}
+
+	// Print RX data
+	printf("\n\nRX:\n");
+
+	// Reaction Wheel PWM
+	printf("\nReaction Wheel PWM\t");
+	for(int i = 0;i < 3;i++) {
+		printf("%4.2f\t", serRec[i]);
+	}
+
+	// Torque Rod PWM
+	printf("\nTorque Rod PWM\t\t");
+	for(int i = 0;i < 3;i++) {
+		printf("%4.2f\t", serRec[i+3]);
+	}
+
+
+	if(read_string_err == 0 && strlen(printstring) > 0) {
+		printf("\n\nPRINT FROM STM32\n%s\nEND PRINT FROM STM32\n", printstring);
+	}
+
+	// Print out power consumption for each state
+	printf("\nDetumbling Energy: %3.3f [J]\t \nReorientation Energy: %3.3f [J]\t \nStabilization Energy: %3.3f [J]\n",
+				detumbleEnergy, reorientEnergy, stabilizationEnergy);
+
+
+	// ---------- DATA LOGGING & CONTINUOUS FILE OUTPUT ----------
+	static FILE *instPower, *stateEnergy, *tEnergy, *pointingErr, *rwSpeeds, *stateLog, *orbitMaster;
+	static int First = 1, last_state = -1;
+
+	if (First) {
+		First = 0;
+
+		instPower = FileOpen(InOutPath,"instPower.42","w");
+		fprintf(instPower, "========== INSTANTANEOUS POWER ==========\nRW [W]\tTR [W]\tTotal [W]\n");
+
+		stateEnergy = FileOpen(InOutPath,"stateEnergy.42","w");
+		fprintf(stateEnergy, "========== ENERGY USED BY EACH ACS STATE ==========\nDetumbling [J]\tReorient [W]\tStabilize [W]\n");
+
+		tEnergy = FileOpen(InOutPath,"totalEnergy.42","w");
+		fprintf(tEnergy, "Total energy used by the ACS [J]\n");
+
+		pointingErr = FileOpen(InOutPath,"pointingErr.42","w");
+		fprintf(pointingErr, "Pointing error [deg]\n");
+
+		rwSpeeds = FileOpen(InOutPath,"rwSpeeds.42","w");
+		fprintf(rwSpeeds, "========== REACTION WHEEL SPEEDS ==========\nX [rad/s]\tY [rad/s]\tZ [rad/s]\n");
+
+		stateLog = FileOpen(InOutPath,"stateLog.42","w");
+		fprintf(rwSpeeds, "========== ACS STATE TRANSITIONS ==========\nNew state\tSim Time [s]\tSim Step\tJulian Date\n");
+
+		orbitMaster = FileOpen(InOutPath,"orbitMaster.42","w");
+	}
+
+	// Print power to file
+	fprintf(instPower, "%lf\t %lf\t %lf\n", rwPower, trPower, totalPower);
+
+	fprintf(stateEnergy, "%lf\t %lf\t%lf\n", detumbleEnergy, reorientEnergy, stabilizationEnergy);
+	fprintf(tEnergy, "%lf\n", totalEnergy);
+
+	// Print reaction wheel speeds to file
+	fprintf(rwSpeeds, "%lf\t %lf\t %lf\n", AC->Whl[0].w, AC->Whl[1].w, AC->Whl[2].w);
+
+	// Log state transitions
+	static char full_state_names[20][] = {"Detumble", "Wait for Attitude", "Reorient", "Stabilize"};
+	if(acs_state != -1 && acs_state != last_state) {
+		fprintf(stateLog, "%s\t%ld\t%ld\t%15.7lf\n", full_state_names[acs_state], SimTime, SimStep, JD);
+		last_state = acs_state;
+	}
+
+	// ---------- PER ORBIT FILE OUTPUT ----------
+	static double orbit_start_angle = -1, last_orbit_angle, orbit_start_time, orbit_time = 0;
+	double
 	static double max_err = 0, cumulative_err = 0;
 	static double below_1deg, below_5deg, below_10deg, below_20deg;
 	static double max_power = 0, cumulative_power = 0;
@@ -1334,7 +1355,7 @@ void SlugSatFSW(struct SCType *S)
 	double XhatN[3] = {1, 0, 0}, orbit_angle;
 	double P[3] = {Orb[0].PosN[0], Orb[0].PosN[1], 0};
 
-	// Error measurement
+	// Pointing error measurement
 	fprintf(pointingErr, "%8.4f\n", pointing_err);
 
 	if(pointing_err > max_err) {
@@ -1361,40 +1382,58 @@ void SlugSatFSW(struct SCType *S)
 	}
 	cumulative_power += totalPower*AC->DT;
 
-
+	// Time measurement
 	orbit_time += AC->DT;
 	orbit_steps++;
 
-	//Find angle between vectors using dot product formula
+	// Find angle between craft's position and the X inertial unit vector
+	// This is used to determine when an orbit has been completed
 	orbit_angle = acos(Orb[0].PosN[0] / (MAGV(P)));
 	orbit_angle = (180*orbit_angle) / Pi;
-
 	if(P[1] < 0) {
 		orbit_angle = 360.0 - orbit_angle;
 	}
 
 	if(orbit_start_angle == -1) {
+		// Initialize on first run
 		orbit_start_angle = orbit_angle;
 		last_orbit_angle = orbit_angle;
+		orbit_start_time = AbsTime;
 	}
 	else if(orbit_angle >= orbit_start_angle && last_orbit_angle < orbit_start_angle) {
 		// Craft has finished an orbit
+		double JD_start, second;
+		long year, month, day, hour, minute;
+		char mon[12][4]={"Jan","Feb","Mar","Apr","May","Jun", "Jul","Aug","Sep","Oct","Nov","Dec"};
+
 		fprintf(orbitMaster, "========== ORBIT NUMBER %ld ==========\n", orbit_num);
-		fprintf(orbitMaster, "Max pointing error: %7.4f [Deg]\n", max_err);
-		fprintf(orbitMaster, "Avg pointing error: %7.4f [Deg]\n", cumulative_err/orbit_time);
-		fprintf(orbitMaster, "Max power: %7.4f [mW]\n", max_power);
-		fprintf(orbitMaster, "Avg power: %7.4f [mW]\n", cumulative_power/orbit_time);
+		fprintf(orbitMaster, "Sim steps: %ld\n\n", orbit_steps);
+
+		// Print orbit start time
+		fprintf(orbitMaster, "Start:\n");
+		JD_start = AbsTimeToJd(orbit_start_time);
+		AbsTimeToDate(orbit_start_time, &year, &month, &day, &hour, &minute, &second, 0.01);
+		fprintf(orbitMaster, "%2li %s %4li -- %02li:%02li:%05.2f (JD = %14.7)\n\n", day, mon[month-1], year, hour, minute, second, JD_start);
+
+		// Print orbit end time (the current time)
+		fprintf(orbitMaster, "End:\n");
+		fprintf(orbitMaster, "%2li %s %4li -- %02li:%02li:%05.2f (JD = %14.7)\n\n", Day, mon[Month-1], Year, Hour, Minute, Second, JD);
+
+		// Print pointing error
+		fprintf(orbitMaster, "Max pointing error:\t%7.4f [Deg]\n", max_err);
+		fprintf(orbitMaster, "Avg pointing error:\t%7.4f [Deg]\n", cumulative_err/orbit_time);
 		fprintf(orbitMaster, "Percent time below:\n");
-		fprintf(orbitMaster, "\t1 deg\t5deg\t10deg\t20deg\n");
-		fprintf(orbitMaster, "\t%6.2f\t%6.2f\t%6.2f\t%6.2f\n",
+		fprintf(orbitMaster, "\t1 deg\t5 deg\t10 deg\t20 deg\n");
+		fprintf(orbitMaster, "\t%5.2f%%\t%5.2f%%\t%5.2f%%\t%5.2f%%\n\n",
 				100.0*below_1deg/orbit_time, 100.0*below_5deg/orbit_time,
 				100.0*below_10deg/orbit_time, 100.0*below_20deg/orbit_time);
-		fprintf(orbitMaster, "Steps last orbit: %ld\n", orbit_steps);
-		fprintf(orbitMaster, "\n");
+		fprintf(orbitMaster, "Max power:\t%8.4f [mW]\n", max_power);
+		fprintf(orbitMaster, "Avg power:\t%8.4f [mW]\n\n", cumulative_power/orbit_time);
 
 		orbit_num++;
 		orbit_steps = 0;
 		orbit_time = 0;
+		orbit_start_time = AbsTime;
 		max_err = 0;
 		cumulative_err = 0;
 		max_power = 0;
