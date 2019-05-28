@@ -14,7 +14,7 @@
 
 #include "42.h"
 #include "SerialCommunication.h"
-
+#include <time.h>
 
 
 void AcFsw(struct AcType *AC);
@@ -1008,6 +1008,9 @@ void SlugSatFSW(struct SCType *S)
 		return;
 	}
 
+	// Count simulation steps
+	static long sim_steps = 0;
+	sim_steps++;
 
 	//Variables from 42
 	struct AcType *AC; //Attitude control type
@@ -1136,12 +1139,9 @@ void SlugSatFSW(struct SCType *S)
 	}
 
 	// Send torque to achieve the correct changed in rotational inertia in the next sim step
-	printf("\nw_rw:\t\tWhl.w:\n");
 	for(int i = 0;i < 3;i++) {
 		AC->Whl[i].Tcmd = AC->Whl[i].J*(w_rw[i] - w_rw_old[i])/AC->DT;
-		printf("%4.4e\t%4.4e\n", w_rw_old[i], AC->Whl[i].w);
 	}
-	printf("\n");
 
 
 	// ---------- TORQUE ROD DYNAMICS ----------
@@ -1190,18 +1190,15 @@ void SlugSatFSW(struct SCType *S)
 		}
 
 	}
-	printf("\nReaction Wheel Power:\t%f [mW]", 1000*rwPower);
 
 	// Torque Rod Power
 	for(int i = 0;i < 3;i++) {
 		double v = trVmax* fabs(trPWM[i]) / 100.0;
 		trPower += (v*v / trRes);
 	}
-	printf("\nTorque Rod Power:\t %f [mW]", 1000*trPower);
 
 	// Total Power
 	totalPower = rwPower + trPower;
-	printf("\nTotal Power:\t\t%6.3f [mW]\n", 1000*totalPower);
 
 	// Detumbling Energy
 	if (acs_state == 0){
@@ -1237,12 +1234,14 @@ void SlugSatFSW(struct SCType *S)
 
 
 	// ---------- PRINT DATA TO TERMINAL ----------
-	printf("\nTX:\n");
+	printf("\n\n========== 42 SIMULATION ITERATION %6ld ==========\n\n", sim_steps);
+
+	printf("\nData sent to flat-sat:\n");
 
 	// Print mag field
 	printf("\nMag Field (micro Tesla):\t");
 	for(int i = 0;i < 3;i++) {
-		printf("%6.2f\t\t", serSend[i]);
+		printf("%4.2f\t\t", serSend[i]);
 	}
 
 	// Print gyro
@@ -1254,29 +1253,29 @@ void SlugSatFSW(struct SCType *S)
 	// Print solar vector
 	printf("\nSolar Vector (normalized): \t");
 	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", serSend[i+6]);
+		printf("%.4f\t\t", serSend[i+6]);
 	}
 
 	// Print Pos J2000
 	printf("\nPos J2000 (km):\t\t\t");
 	for(int i = 0;i < 3;i++) {
-		printf("%4.4e\t", serSend[i+9]);
+		printf("%.4e\t", serSend[i+9]);
 	}
 
 	// Print w_rw
 	printf("\nw_rw (rad/sec):\t\t\t");
 	for(int i = 0;i < 3;i++) {
-		printf("%6.2f\t\t", serSend[i+12]);
+		printf("%06.2f\t\t", serSend[i+12]);
 	}
 
 	// Print time
 	printf("\nTime:\t\t\t\t");
-	for(int i = 0;i < 2;i++) {
-		printf("%4.4e\t", serSend[i+15]);
-	}
+	printf("%7d\t\t", (int)serSend[15]);
+	printf("%7.7f\t", serSend[16]);
+	printf("%.2f\t", serSend[17]);
 
 	// Print RX data
-	printf("\n\nRX:\n");
+	printf("\n\nData received from flat-sat:\n");
 
 	// Reaction Wheel PWM
 	printf("\nReaction Wheel PWM\t");
@@ -1295,8 +1294,12 @@ void SlugSatFSW(struct SCType *S)
 		printf("\n\nPRINT FROM STM32\n%s\nEND PRINT FROM STM32\n", printstring);
 	}
 
+	printf("\nReaction Wheel Power:\t%7.3f [mW]", 1000*rwPower);
+	printf("\nTorque Rod Power:\t%7.3f [mW]", 1000*trPower);
+	printf("\nTotal Power:\t\t%7.3f [mW]\n", 1000*totalPower);
+
 	// Print out power consumption for each state
-	printf("\nDetumbling Energy: %3.3f [J]\t \nReorientation Energy: %3.3f [J]\t \nStabilization Energy: %3.3f [J]\n",
+	printf("\nDetumbling Energy:\t%8.3f [J]\nReorientation Energy:\t%8.3f [J]\nStabilization Energy:\t%8.3f [J]\n",
 				detumbleEnergy, reorientEnergy, stabilizationEnergy);
 
 
@@ -1307,25 +1310,39 @@ void SlugSatFSW(struct SCType *S)
 	if (First) {
 		First = 0;
 
-		instPower = FileOpen(InOutPath,"instPower.42","w");
+		// Create directory
+		time_t rawtime;
+		time(&rawtime);
+		struct tm* timeinfo = localtime(&rawtime);
+
+		char dir[100];
+		sprintf(dir, "42run_%s", asctime(timeinfo));
+		dir[strlen(dir)-1] = '\0'; // Crop off newline
+		mkdir(dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+
+		dir[strlen(dir)] = '/';
+		dir[strlen(dir)+1] = '\0';
+
+		// Create files
+		instPower = FileOpen(dir,"instPower.42","w");
 		fprintf(instPower, "========== INSTANTANEOUS POWER ==========\nWheels [W]\tTorque Rods [W]\tTotal [W]\n");
 
-		stateEnergy = FileOpen(InOutPath,"stateEnergy.42","w");
+		stateEnergy = FileOpen(dir,"stateEnergy.42","w");
 		fprintf(stateEnergy, "========== ENERGY USED BY EACH ACS STATE ==========\nDetumbling [J]\tReorient [J]\tStabilize [J]\n");
 
-		tEnergy = FileOpen(InOutPath,"totalEnergy.42","w");
+		tEnergy = FileOpen(dir,"totalEnergy.42","w");
 		fprintf(tEnergy, "Total energy used by the ACS [J]\n");
 
-		pointingErr = FileOpen(InOutPath,"pointingErr.42","w");
+		pointingErr = FileOpen(dir,"pointingErr.42","w");
 		fprintf(pointingErr, "Pointing error [deg]\n");
 
-		rwSpeeds = FileOpen(InOutPath,"rwSpeeds.42","w");
+		rwSpeeds = FileOpen(dir,"rwSpeeds.42","w");
 		fprintf(rwSpeeds, "========== REACTION WHEEL SPEEDS ==========\nX [rad/s]\tY [rad/s]\tZ [rad/s]\n");
 
-		stateLog = FileOpen(InOutPath,"stateLog.42","w");
+		stateLog = FileOpen(dir,"stateLog.42","w");
 		fprintf(stateLog, "========== ACS STATE TRANSITIONS ==========\nNew State\tSim Time [s]\tSim Step\tJulian Date\n");
 
-		orbitMaster = FileOpen(InOutPath,"orbitMaster.42","w");
+		orbitMaster = FileOpen(dir,"orbitMaster.42","w");
 	}
 
 	// Print power to file
@@ -1340,7 +1357,7 @@ void SlugSatFSW(struct SCType *S)
 	// Log state transitions
 	static char full_state_names[][20] = {"Detumble\t", "Wait for Attitude", "Reorient\t", "Stabilize\t"};
 	if(acs_state != -1 && acs_state != last_state) {
-		fprintf(stateLog, "%s\t%7.2lf\t%8ld\t%15.7lf\n", full_state_names[acs_state], SimTime, (long int)(SimTime/AC->DT), JD);
+		fprintf(stateLog, "%s\t%7.2lf\t%8ld\t%15.7lf\n", full_state_names[acs_state], SimTime, sim_steps, JD);
 		last_state = acs_state;
 	}
 
