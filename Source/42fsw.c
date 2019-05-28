@@ -1308,10 +1308,10 @@ void SlugSatFSW(struct SCType *S)
 		First = 0;
 
 		instPower = FileOpen(InOutPath,"instPower.42","w");
-		fprintf(instPower, "========== INSTANTANEOUS POWER ==========\nRW [W]\tTR [W]\tTotal [W]\n");
+		fprintf(instPower, "========== INSTANTANEOUS POWER ==========\nWheels [W]\tTorque Rods [W]\tTotal [W]\n");
 
 		stateEnergy = FileOpen(InOutPath,"stateEnergy.42","w");
-		fprintf(stateEnergy, "========== ENERGY USED BY EACH ACS STATE ==========\nDetumbling [J]\tReorient [W]\tStabilize [W]\n");
+		fprintf(stateEnergy, "========== ENERGY USED BY EACH ACS STATE ==========\nDetumbling [J]\tReorient [J]\tStabilize [J]\n");
 
 		tEnergy = FileOpen(InOutPath,"totalEnergy.42","w");
 		fprintf(tEnergy, "Total energy used by the ACS [J]\n");
@@ -1323,7 +1323,7 @@ void SlugSatFSW(struct SCType *S)
 		fprintf(rwSpeeds, "========== REACTION WHEEL SPEEDS ==========\nX [rad/s]\tY [rad/s]\tZ [rad/s]\n");
 
 		stateLog = FileOpen(InOutPath,"stateLog.42","w");
-		fprintf(rwSpeeds, "========== ACS STATE TRANSITIONS ==========\nNew state\tSim Time [s]\tSim Step\tJulian Date\n");
+		fprintf(stateLog, "========== ACS STATE TRANSITIONS ==========\nNew State\tSim Time [s]\tSim Step\tJulian Date\n");
 
 		orbitMaster = FileOpen(InOutPath,"orbitMaster.42","w");
 	}
@@ -1338,9 +1338,9 @@ void SlugSatFSW(struct SCType *S)
 	fprintf(rwSpeeds, "%lf\t %lf\t %lf\n", AC->Whl[0].w, AC->Whl[1].w, AC->Whl[2].w);
 
 	// Log state transitions
-	static char full_state_names[][20] = {"Detumble", "Wait for Attitude", "Reorient", "Stabilize"};
+	static char full_state_names[][20] = {"Detumble\t", "Wait for Attitude", "Reorient\t", "Stabilize\t"};
 	if(acs_state != -1 && acs_state != last_state) {
-		fprintf(stateLog, "%s\t%lf\t%ld\t%15.7lf\n", full_state_names[acs_state], SimTime, (long int)(SimTime/AC->DT), JD);
+		fprintf(stateLog, "%s\t%7.2lf\t%8ld\t%15.7lf\n", full_state_names[acs_state], SimTime, (long int)(SimTime/AC->DT), JD);
 		last_state = acs_state;
 	}
 
