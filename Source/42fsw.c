@@ -1153,12 +1153,12 @@ void SlugSatFSW(struct SCType *S)
 
 	// ---------- GET CRAFT ACS STATE ----------
 	char s[300], state_name[10];
-	static char state_names[10][] = {"Detumble", "Wait", "Reorient", "Stabilize"};
+	static char state_names[][10] = {"Detumble", "Wait", "Reorient", "Stabilize"};
 	int acs_state = -1;
 
 	if(sscanf(printstring, "%s -- %s\n", s, state_name) == 2) {
 		for(int i = 0;i < 4;i++) {
-			if(strcmp(state_name, state_names[i] == 0)) {
+			if(strcmp(state_name, state_names[i]) == 0) {
 				acs_state = i;
 				break;
 			}
@@ -1338,21 +1338,20 @@ void SlugSatFSW(struct SCType *S)
 	fprintf(rwSpeeds, "%lf\t %lf\t %lf\n", AC->Whl[0].w, AC->Whl[1].w, AC->Whl[2].w);
 
 	// Log state transitions
-	static char full_state_names[20][] = {"Detumble", "Wait for Attitude", "Reorient", "Stabilize"};
+	static char full_state_names[][20] = {"Detumble", "Wait for Attitude", "Reorient", "Stabilize"};
 	if(acs_state != -1 && acs_state != last_state) {
-		fprintf(stateLog, "%s\t%ld\t%ld\t%15.7lf\n", full_state_names[acs_state], SimTime, SimStep, JD);
+		fprintf(stateLog, "%s\t%lf\t%ld\t%15.7lf\n", full_state_names[acs_state], SimTime, (long int)(SimTime/AC->DT), JD);
 		last_state = acs_state;
 	}
 
 	// ---------- PER ORBIT FILE OUTPUT ----------
 	static double orbit_start_angle = -1, last_orbit_angle, orbit_start_time, orbit_time = 0;
-	double
 	static double max_err = 0, cumulative_err = 0;
 	static double below_1deg, below_5deg, below_10deg, below_20deg;
 	static double max_power = 0, cumulative_power = 0;
 	static long orbit_num = 0, orbit_steps = 0;
 
-	double XhatN[3] = {1, 0, 0}, orbit_angle;
+	double orbit_angle;
 	double P[3] = {Orb[0].PosN[0], Orb[0].PosN[1], 0};
 
 	// Pointing error measurement
@@ -1411,13 +1410,13 @@ void SlugSatFSW(struct SCType *S)
 
 		// Print orbit start time
 		fprintf(orbitMaster, "Start:\n");
-		JD_start = AbsTimeToJd(orbit_start_time);
+		JD_start = AbsTimeToJD(orbit_start_time);
 		AbsTimeToDate(orbit_start_time, &year, &month, &day, &hour, &minute, &second, 0.01);
-		fprintf(orbitMaster, "%2li %s %4li -- %02li:%02li:%05.2f (JD = %14.7)\n\n", day, mon[month-1], year, hour, minute, second, JD_start);
+		fprintf(orbitMaster, "%2li %s %4li -- %02li:%02li:%05.2f (JD = %14.7lf)\n\n", day, mon[month-1], year, hour, minute, second, JD_start);
 
 		// Print orbit end time (the current time)
 		fprintf(orbitMaster, "End:\n");
-		fprintf(orbitMaster, "%2li %s %4li -- %02li:%02li:%05.2f (JD = %14.7)\n\n", Day, mon[Month-1], Year, Hour, Minute, Second, JD);
+		fprintf(orbitMaster, "%2li %s %4li -- %02li:%02li:%05.2f (JD = %14.7lf)\n\n", Day, mon[Month-1], Year, Hour, Minute, Second, JD);
 
 		// Print pointing error
 		fprintf(orbitMaster, "Max pointing error:\t%7.4f [Deg]\n", max_err);
