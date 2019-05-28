@@ -1264,7 +1264,7 @@ void SlugSatFSW(struct SCType *S)
 	// Print instantaneous power to file
 
 	// Create and initialize files
-	static FILE *instPower, *stateEnergy, *tEnergy, *pointingErr, *orbitMaster;
+	static FILE *instPower, *stateEnergy, *tEnergy, *pointingErr, *rwSpeeds, *orbitMaster;
 	static int First = 1;
 
 	if (First) {
@@ -1273,12 +1273,16 @@ void SlugSatFSW(struct SCType *S)
 		stateEnergy = FileOpen(InOutPath,"stateEnergy.42","w");
 		tEnergy = FileOpen(InOutPath,"totalEnergy.42","w");
 		pointingErr = FileOpen(InOutPath,"pointingErr.42","w");
+		rwSpeeds = FileOpen(InOutPath,"rwSpeeds.42","w");
 		orbitMaster = FileOpen(InOutPath,"orbitMaster.42","w");
 	}
 
-	// Print to file
+	// Print power to file
 	fprintf(instPower, "%lf\t %lf\t %lf\n", rwPower, trPower, totalPower);
 
+
+	// Print reaction wheel speeds to file
+	fprintf(rwSpeeds, "%lf\t %lf\t %lf\n", AC->Whl[0].w, AC->Whl[1].w, AC->Whl[2].w);
 
 	// Detumbling power
 	if (strcmp(detumble, state) == 0){
@@ -1383,7 +1387,8 @@ void SlugSatFSW(struct SCType *S)
 		fprintf(orbitMaster, "Percent time below:\n");
 		fprintf(orbitMaster, "\t1 deg\t5deg\t10deg\t20deg\n");
 		fprintf(orbitMaster, "\t%6.2f\t%6.2f\t%6.2f\t%6.2f\n",
-				below_1deg/orbit_time, below_5deg/orbit_time, below_10deg/orbit_time, below_20deg/orbit_time);
+				100.0*below_1deg/orbit_time, 100.0*below_5deg/orbit_time,
+				100.0*below_10deg/orbit_time, 100.0*below_20deg/orbit_time);
 		fprintf(orbitMaster, "Steps last orbit: %ld\n", orbit_steps);
 		fprintf(orbitMaster, "\n");
 
@@ -1401,14 +1406,8 @@ void SlugSatFSW(struct SCType *S)
 	}
 	last_orbit_angle = orbit_angle;
 
-	//Average pointing error for orbit
 
-	//Max pointing error for orbit
-
-	//Orbital Summary
-	//Avg power
-	//Max power
-
+	fflush(0); // Write all pending output to files
 }
 
 
