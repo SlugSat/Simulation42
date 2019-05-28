@@ -1324,19 +1324,19 @@ void SlugSatFSW(struct SCType *S)
 		dir[strlen(dir)+1] = '\0';
 
 		// Create files
-		instPower = FileOpen(dir,"instPower.42","w");
+		instPower = FileOpen(dir,"instPower.csv","w");
 		fprintf(instPower, "========== INSTANTANEOUS POWER ==========\nWheels [W]\tTorque Rods [W]\tTotal [W]\n");
 
-		stateEnergy = FileOpen(dir,"stateEnergy.42","w");
+		stateEnergy = FileOpen(dir,"stateEnergy.csv","w");
 		fprintf(stateEnergy, "========== ENERGY USED BY EACH ACS STATE ==========\nDetumbling [J]\tReorient [J]\tStabilize [J]\n");
 
-		tEnergy = FileOpen(dir,"totalEnergy.42","w");
+		tEnergy = FileOpen(dir,"totalEnergy.csv","w");
 		fprintf(tEnergy, "Total energy used by the ACS [J]\n");
 
-		pointingErr = FileOpen(dir,"pointingErr.42","w");
+		pointingErr = FileOpen(dir,"pointingErr.csv","w");
 		fprintf(pointingErr, "Pointing error [deg]\n");
 
-		rwSpeeds = FileOpen(dir,"rwSpeeds.42","w");
+		rwSpeeds = FileOpen(dir,"rwSpeeds.csv","w");
 		fprintf(rwSpeeds, "========== REACTION WHEEL SPEEDS ==========\nX [rad/s]\tY [rad/s]\tZ [rad/s]\n");
 
 		stateLog = FileOpen(dir,"stateLog.42","w");
