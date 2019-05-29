@@ -1422,6 +1422,7 @@ void SlugSatFSW(struct SCType *S)
 		long year, month, day, hour, minute;
 		char mon[12][4]={"Jan","Feb","Mar","Apr","May","Jun", "Jul","Aug","Sep","Oct","Nov","Dec"};
 
+		orbit_num++;
 		fprintf(orbitMaster, "========== ORBIT NUMBER %ld ==========\n", orbit_num);
 		fprintf(orbitMaster, "Sim steps: %ld\n\n", orbit_steps);
 
@@ -1443,10 +1444,10 @@ void SlugSatFSW(struct SCType *S)
 		fprintf(orbitMaster, "\t%5.2f%%\t%5.2f%%\t%5.2f%%\t%5.2f%%\n\n",
 				100.0*below_1deg/orbit_time, 100.0*below_5deg/orbit_time,
 				100.0*below_10deg/orbit_time, 100.0*below_20deg/orbit_time);
-		fprintf(orbitMaster, "Max power:\t%8.4f [mW]\n", max_power);
-		fprintf(orbitMaster, "Avg power:\t%8.4f [mW]\n\n", cumulative_power/orbit_time);
+		fprintf(orbitMaster, "Max power:\t%8.4f [mW]\n", 1000*max_power);
+		fprintf(orbitMaster, "Avg power:\t%8.4f [mW]\n\n", 1000*cumulative_power/orbit_time);
 
-		orbit_num++;
+		// Reset variables
 		orbit_steps = 0;
 		orbit_time = 0;
 		orbit_start_time = AbsTime;
