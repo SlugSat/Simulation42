@@ -1114,12 +1114,14 @@ void SlugSatFSW(struct SCType *S)
 			if(rwBrake[i] == 0) { // Brake disabled
 				vRw[i] = rwVmax*(rwPWM[i]/100.0); // Voltage across motor
 				double e = w_rw[i]*Ke; // Back EMF
-				if(fabs(vRw[i]) > fabs(e)) {
+
+				// Coast iff v and e are in the same direction and v < e
+				if(fabs(vRw[i]) >= fabs(e) || sign(vRw[i]) == sign(e)) {
 					trq = (Kt/R)*(vRw[i] - e); // Find torque from DC motor equation
 				}
 				else {
 					trq = 0; // Coasting
-					printf("COASTING\n");
+					printf("COASTING\n"); // This should never happen; print for debugging purposes
 				}
 			}
 			else { // Brake enabled
