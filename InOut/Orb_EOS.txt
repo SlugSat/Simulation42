@@ -6,7 +6,7 @@ MINORBODY_2                   !  World
 FALSE                         ! Use Polyhedron Gravity
 ::::::::::::::  Use these lines if FLIGHT   :::::::::::::::::
 0                             !  Region Number
-FALSE                         ! Use Polyhedron Gravity
+FALSE                         !  Use Polyhedron Gravity
 ::::::::::::::  Use these lines if Body-Centered Orbit  :::::::::::::::::
 EARTH                         !  Orbit Center
 FALSE                         !  Secular Orbit Drift Due to J2
@@ -20,8 +20,8 @@ PA                            !  Use Peri/Apoapsis (PA) or min alt/ecc (AE)
 0.0                           !  True Anomaly (deg)
 0.0  0.0  0.0                 !  RV Initial Position (km)
 0.0  0.0  0.0                 !  RV Initial Velocity (km/sec)
-TRV  "ORB_ID"                 !  TLE or TRV format, Label to find in file
-"TRV.txt"                     !  File name
+TLE  "ORB_ID"                 !  TLE or TRV format, Label to find in file
+"3le_5-30-2019.txt"           !  File name
 :::::::::::::  Use these lines if Lagrange-System Orbit  ::::::::::::::::
 SUNEARTH                      !  Lagrange system
 LAGDOF_MODES                  !  Propagate using LAGDOF_MODES or LAGDOF_COWELL or LAGDOF_SPLINE
@@ -37,8 +37,8 @@ CW                            !  Sense (CW, CCW), viewed from +Z (L4, L5 only)
 60.0                          !  Initial Z Phase, deg
 1.05  0.5  0.0                !  Initial X, Y, Z (Non-dimensional)
 0.0   0.0  0.0                !  Initial Xdot, Ydot, Zdot (Non-dimensional)
-TRV  "ORB_ID"                 !  TLE, TRV or SPLINE format, Label to find in file
-"TRV.txt"                     !  File name
+TLE  "PORCUPINE 1"            !  TLE, TRV or SPLINE format, Label to find in file
+"3le_5-30-2019.txt"           !  File name
 ******************* Formation Frame Parameters ************************
 L                             !  Formation Frame Fixed in [NL]
 0.0  0.0  0.0  123            !  Euler Angles (deg) and Sequence
