@@ -1027,10 +1027,11 @@ void SlugSatFSW(struct SCType *S)
 
 	// ---------- PREPARE TO SEND/RECEIVE FROM THE FLAT-SAT ----------
 	int sensorFloats = 18; //number of floats to send
-	int actuatorFloats = 6; //number of floats to receive
-	float serSend[sensorFloats], serRec[actuatorFloats]; // Serial send and receive
+	int actuatorFloats = 9; //number of floats to receive
+	float serSend[sensorFloats], serRec[actuatorFloats]; // Serial send and receive buffers
 	float bSer[3], sunSer[3], gyroSer[3]; // Sensor values to send
-	double rwPWM[3], trPWM[3]; // Actuator duty cycserSendles
+	double rwPWM[3], trPWM[3]; // Actuator duty cycles
+	int rwBrake[3]; // Reaction wheel brake pins
 
 
 	// Convert sensor data to floats
@@ -1084,10 +1085,13 @@ void SlugSatFSW(struct SCType *S)
 
 	// Get reaction wheel and torque rod PWMs
 	for(int i = 0;i < 3;i++) {
-		rwPWM[i] = (double)serRec[i];	// Reaction Wheel
+		rwPWM[i] = (double)serRec[i];	// Reaction wheel PWM
 		if(rwPWM[i] > 100.0) rwPWM[i] = 100.0;
 		else if(rwPWM[i] < -100.0) rwPWM[i] = -100.0;
-		trPWM[i] = (double)serRec[i+3]; // Magnetic torque bar
+
+		rwBrake[i] = (int)serRec[i+3]; // Brake pin
+
+		trPWM[i] = (double)serRec[i+6]; // Magnetic torque bar (torque rod) PWM
 		if(trPWM[i] > 100.0) trPWM[i] = 100.0;
 		else if(trPWM[i] < -100.0) trPWM[i] = -100.0;
 	}
@@ -1097,21 +1101,34 @@ void SlugSatFSW(struct SCType *S)
 	static double Kt = 0.00713, Ke = 0.00713332454, R = 92.7; // Reaction wheel motor constants
 	static double C0 = 19e-6; // Static friction torque = 19 uNm (in Nm)
 	static double CV = 30.94e-9; // Dynamic friction torque = 30.94 uNm/rad/s (in Nm/rad/s)
-	double sample_dt = 0.1; // Oversampling dt
+	double sample_dt = 0.1; // Oversampling timestep
 	double vRw[3], rwTrq[3]; // Reaction wheel voltage and torque
 
 	// Save old RW speed
 	double w_rw_old[3] = {w_rw[0], w_rw[1], w_rw[2]};
 
+	double trq, fricTrq, w_rw_dot, delta_w_rw;
 	for(double t = 0;t < AC->DT;t += sample_dt) { // Sample every sample_dt seconds
 		for(int i = 0;i < 3;i++) {
-			vRw[i] = rwVmax*(rwPWM[i]/100.0); // Get voltage across motor
+			// Find torque from motor equation
+			if(rwBrake[i] == 0) { // Brake disabled
+				vRw[i] = rwVmax*(rwPWM[i]/100.0); // Voltage across motor
+				double e = w_rw[i]*Ke; // Back EMF
+				if(fabs(vRw[i]) > fabs(e)) {
+					trq = (Kt/R)*(vRw[i] - e); // Find torque from DC motor equation
+				}
+				else {
+					trq = 0; // Coasting
+					printf("COASTING\n");
+				}
+			}
+			else { // Brake enabled
+				vRw[i] = 0;
+				trq = -(Kt*Ke/R)*w_rw[i]*rwPWM[i]/100.0; // Braking torque from back EMF
+			}
 
 			// Find friction torque from motor
-			double fricTrq = C0 + CV * fabs(w_rw[i]);
-
-			// Motor equation
-			double trq = (Kt/R)*(vRw[i] - w_rw[i]*Ke); // Find torque from DC motor equation
+			fricTrq = C0 + CV * fabs(w_rw[i]);
 
 			// Subtract off friction torque
 			if(w_rw[i] == 0.0 && fabs(trq) <= fricTrq) {
@@ -1125,8 +1142,10 @@ void SlugSatFSW(struct SCType *S)
 			else { // w_rw[i] < 0
 				rwTrq[i] = trq + fricTrq;
 			}
-			double w_rw_dot = rwTrq[i]/AC->Whl[i].J; // Find acceleration from torque
-			double delta_w_rw = w_rw_dot*sample_dt; // Find change in motor speed this timestep
+
+			// Find new motor speed
+			w_rw_dot = rwTrq[i]/AC->Whl[i].J; // Acceleration from torque
+			delta_w_rw = w_rw_dot*sample_dt; // Change in motor speed this timestep
 
 			// Check if friction would cause the motor to stop on this step
 			if(sign(w_rw[i] + delta_w_rw) != sign(w_rw[i]) && fabs(trq) <= fricTrq) {
@@ -1282,11 +1301,15 @@ void SlugSatFSW(struct SCType *S)
 	for(int i = 0;i < 3;i++) {
 		printf("%4.2f\t", serRec[i]);
 	}
+	printf("\nRW Brake Pins\t\t");
+	for(int i = 0;i < 3;i++) {
+		printf("%4d\t", rwBrake[i]);
+	}
 
 	// Torque Rod PWM
 	printf("\nTorque Rod PWM\t\t");
 	for(int i = 0;i < 3;i++) {
-		printf("%4.2f\t", serRec[i+3]);
+		printf("%4.2f\t", serRec[i+6]);
 	}
 
 
@@ -1337,7 +1360,7 @@ void SlugSatFSW(struct SCType *S)
 		fprintf(pointingErr, "Pointing error [deg]\n");
 
 		rwSpeeds = FileOpen(dir,"rwSpeeds.csv","w");
-		fprintf(rwSpeeds, "========== REACTION WHEEL SPEEDS ==========\nX [rad/s]\tY [rad/s]\tZ [rad/s]\n");
+		fprintf(rwSpeeds, "========== REACTION WHEEL SPEEDS AND CONTROL SIGNALS ==========\nX [rad/s]\tY [rad/s]\tZ [rad/s]\tX [%]\tY [%]\tZ [%]\tX [Brake]\tY [Brake]\tZ [Brake]\n");
 
 		stateLog = FileOpen(dir,"stateLog.42","w");
 		fprintf(stateLog, "========== ACS STATE TRANSITIONS ==========\nNew State\tSim Time [s]\tSim Step\tJulian Date\n");
@@ -1346,13 +1369,18 @@ void SlugSatFSW(struct SCType *S)
 	}
 
 	// Print power to file
-	fprintf(instPower, "%lf\t %lf\t %lf\n", rwPower, trPower, totalPower);
+	fprintf(instPower, "%lf,\t%lf,\t%lf,\n", rwPower, trPower, totalPower);
 
-	fprintf(stateEnergy, "%lf\t %lf\t%lf\n", detumbleEnergy, reorientEnergy, stabilizationEnergy);
-	fprintf(tEnergy, "%lf\n", totalEnergy);
+	fprintf(stateEnergy, "%lf,\t%lf,\t%lf,\n", detumbleEnergy, reorientEnergy, stabilizationEnergy);
+	fprintf(tEnergy, "%lf,\n", totalEnergy);
+
+	// Print pointing error to file
+	fprintf(pointingErr, "%8.4f,\n", pointing_err);
 
 	// Print reaction wheel speeds to file
-	fprintf(rwSpeeds, "%lf\t %lf\t %lf\n", AC->Whl[0].w, AC->Whl[1].w, AC->Whl[2].w);
+	fprintf(rwSpeeds, "%lf,\t%lf,\t%lf,\t", AC->Whl[0].w, AC->Whl[1].w, AC->Whl[2].w);
+	fprintf(rwSpeeds, "%lf,\t%lf,\t%lf,\t", rwPWM[0], rwPWM[1], rwPWM[2]);
+	fprintf(rwSpeeds, "%d,\t%d,\t%d,\n", rwBrake[0], rwBrake[1], rwBrake[2]);
 
 	// Log state transitions
 	static char full_state_names[][20] = {"Detumble\t", "Wait for Attitude", "Reorient\t", "Stabilize\t"};
@@ -1370,9 +1398,6 @@ void SlugSatFSW(struct SCType *S)
 
 	double orbit_angle;
 	double P[3] = {Orb[0].PosN[0], Orb[0].PosN[1], 0};
-
-	// Pointing error measurement
-	fprintf(pointingErr, "%8.4f\n", pointing_err);
 
 	if(pointing_err > max_err) {
 		max_err = pointing_err;
