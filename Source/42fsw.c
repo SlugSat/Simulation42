@@ -1100,7 +1100,7 @@ void SlugSatFSW(struct SCType *S)
 	// ---------- REACTION WHEEL DYNAMICS ----------
 	static double Kt = 0.00713, Ke = 0.00713332454, R = 92.7; // Reaction wheel motor constants
 	static double C0 = 19e-6; // Static friction torque = 19 uNm (in Nm)
-	static double CV = 30.94e-9; // Dynamic friction torque = 30.94 nNm/rad/s (in Nm/rad/s)
+	static double CV = 103e-9; // Dynamic friction torque = 103 nNm/rad/s (in Nm/rad/s)
 	double sample_dt = 0.1; // Oversampling timestep
 	double vRw[3], rwTrq[3]; // Reaction wheel voltage and torque
 
@@ -1360,7 +1360,7 @@ void SlugSatFSW(struct SCType *S)
 
 		// Create files
 		instPower = FileOpen(dir,"instPower.csv","w");
-		fprintf(instPower, "========== INSTANTANEOUS POWER ==========\nWheels [W]\tTorque Rods [W]\tTotal [W]\n");
+		fprintf(instPower, "========== INSTANTANEOUS POWER ==========\nWheels [W]\tTorque Rods [W]\tTotal Used [W]\tGenerated [W]\n");
 
 		stateEnergy = FileOpen(dir,"stateEnergy.csv","w");
 		fprintf(stateEnergy, "========== ENERGY USED BY EACH ACS STATE ==========\nDetumbling [J]\tReorient [J]\tStabilize [J]\n");
@@ -1381,7 +1381,7 @@ void SlugSatFSW(struct SCType *S)
 	}
 
 	// Print power to file
-	fprintf(instPower, "%lf,\t%lf,\t%lf,\n", rwPower, trPower, totalPower);
+	fprintf(instPower, "%lf,\t%lf,\t%lf,\t%lf\n", rwPower, trPower, totalPower, genPower);
 
 	fprintf(stateEnergy, "%lf,\t%lf,\t%lf,\n", detumbleEnergy, reorientEnergy, stabilizationEnergy);
 	fprintf(tEnergy, "%lf,\n", totalEnergy);
@@ -1484,7 +1484,7 @@ void SlugSatFSW(struct SCType *S)
 				100.0*below_10deg/orbit_time, 100.0*below_20deg/orbit_time);
 		fprintf(orbitMaster, "Max power:\t%8.4f [mW]\n", 1000*max_power);
 		fprintf(orbitMaster, "Avg power:\t%8.4f [mW]\n\n", 1000*cumulative_power/orbit_time);
-		fprintf(orbitMaster, "Avg power gen:\t8.4f [mW]\n\n", 1000*cumulative_gen_power/orbit_time);
+		fprintf(orbitMaster, "Avg power gen:\t%8.4f [mW]\n\n", 1000*cumulative_gen_power/orbit_time);
 
 		// Reset variables
 		orbit_steps = 0;

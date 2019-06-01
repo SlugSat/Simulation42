@@ -887,17 +887,40 @@ void DrawCamHUD(void)
          DrawBitmapString(GLUT_BITMAP_8_BY_13,s);
       }
 	  
-	  // Get body Zhat and craft position in N frame
-	  glColor4fv(BBrightColor);
+
+	  /***** SLUGSAT UI PRINTING *****/
+      GLfloat White[4] = {0.8,0.8,0.8,1.0};
+      GLfloat Green[4] = {0.0,0.8,0.0,1.0};
+      GLfloat Yellow[4] = {0.8,0.8,0.0,1.0};
+      GLfloat Red[4] = {0.8,0.0,0.0,1.0};
 		
 	  // Print pointing error
-	  sprintf(s,"Pointing error: [%5.4f degrees]", pointing_err);
+      glColor4fv(White);
+	  sprintf(s,"Pointing error [degrees]:");
 	  glRasterPos2i(CamWidth-300,CamHeight-50);
 	  DrawBitmapString(GLUT_BITMAP_8_BY_13,s);
 
+	  if(pointing_err <= 10.0) {
+		  glColor4fv(Green);
+	  }
+	  else if(pointing_err <= 20.0) {
+		  glColor4fv(Yellow);
+	  }
+	  else {
+		  glColor4fv(Red);
+	  }
+	  sprintf(s,"%5.4f", pointing_err);
+	  glRasterPos2i(CamWidth-80,CamHeight-50);
+	  DrawBitmapString(GLUT_BITMAP_8_BY_13,s);
+
 	  // Print angle of incidence
-	  sprintf(s,"Sun AoI: [%5.4f degrees]", aoi_xy);
+	  glColor4fv(White);
+	  sprintf(s,"Sun AoI [degrees]:");
 	  glRasterPos2i(CamWidth-300,CamHeight-25);
+	  DrawBitmapString(GLUT_BITMAP_8_BY_13,s);
+
+	  sprintf(s,"%5.4f", aoi_xy);
+	  glRasterPos2i(CamWidth-80,CamHeight-25);
 	  DrawBitmapString(GLUT_BITMAP_8_BY_13,s);
 	 
 
