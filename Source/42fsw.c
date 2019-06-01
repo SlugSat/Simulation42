@@ -1100,7 +1100,7 @@ void SlugSatFSW(struct SCType *S)
 	// ---------- REACTION WHEEL DYNAMICS ----------
 	static double Kt = 0.00713, Ke = 0.00713332454, R = 92.7; // Reaction wheel motor constants
 	static double C0 = 19e-6; // Static friction torque = 19 uNm (in Nm)
-	static double CV = 30.94e-9; // Dynamic friction torque = 30.94 uNm/rad/s (in Nm/rad/s)
+	static double CV = 30.94e-9; // Dynamic friction torque = 30.94 nNm/rad/s (in Nm/rad/s)
 	double sample_dt = 0.1; // Oversampling timestep
 	double vRw[3], rwTrq[3]; // Reaction wheel voltage and torque
 
