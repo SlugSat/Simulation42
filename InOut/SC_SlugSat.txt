@@ -62,7 +62,7 @@ FALSE  FALSE  FALSE           ! TrnDOF Locked
 0.0                           ! Initial Momentum, N-m-sec
 1.0   0.0   0.0               ! Wheel Axis Components, [X, Y, Z]
 10.00   10.00                 ! Max Torque (N-m), Momentum (N-m-sec)
-1.367e-6                      ! Wheel Rotor Inertia, kg-m^2
+1.367e-6                      ! Wheel Rotor Inertia, kg-m^2 <- Affects SlugSat RW model
 0.00                          ! Static Imbalance, g-cm
 0.00                          ! Dynamic Imbalance, g-cm^2
 0                             ! Flex Node Index
@@ -70,7 +70,7 @@ FALSE  FALSE  FALSE           ! TrnDOF Locked
 0.0                           ! Initial Momentum, N-m-sec
 0.0   1.0   0.0               ! Wheel Axis Components, [X, Y, Z]
 10.00   10.00                 ! Max Torque (N-m), Momentum (N-m-sec)
-1.367e-6                      ! Wheel Rotor Inertia, kg-m^2
+1.367e-6                      ! Wheel Rotor Inertia, kg-m^2 <- Affects SlugSat RW model
 0.00                          ! Static Imbalance, g-cm
 0.00                          ! Dynamic Imbalance, g-cm^2
 0                             ! Flex Node Index
@@ -78,7 +78,7 @@ FALSE  FALSE  FALSE           ! TrnDOF Locked
 0.0                           ! Initial Momentum, N-m-sec
 0.0   0.0   1.0               ! Wheel Axis Components, [X, Y, Z]
 10.00   10.00                 ! Max Torque (N-m), Momentum (N-m-sec)
-1.367e-6                      ! Wheel Rotor Inertia, kg-m^2
+1.367e-6                      ! Wheel Rotor Inertia, kg-m^2 <- Affects SlugSat RW model
 0.00                          ! Static Imbalance, g-cm
 0.00                          ! Dynamic Imbalance, g-cm^2
 0                             ! Flex Node Index
@@ -170,42 +170,42 @@ FALSE  FALSE  FALSE           ! TrnDOF Locked
 0.1                           ! Sample Time,sec
 1.0  0.0  0.0                 ! Axis expressed in Body Frame
 90.0                          ! Half-cone Angle, deg
-1.00                          ! Scale Factor
+1.05                          ! Scale Factor
 0.001                         ! Quantization
 0                             ! Flex Node Index
 ============================== CSS 1 ====================================
 0.1                           ! Sample Time,sec
 0.0  1.0  0.0                 ! Axis expressed in Body Frame
 90.0                          ! Half-cone Angle, deg
-1.00                           ! Scale Factor
+0.95                          ! Scale Factor
 0.001                         ! Quantization
 0                             ! Flex Node Index
 ============================== CSS 2 ====================================
 0.1                           ! Sample Time,sec
 -1.0  0.0  0.0                ! Axis expressed in Body Frame
 90.0                          ! Half-cone Angle, deg
-1.00                          ! Scale Factor
+1.05                          ! Scale Factor
 0.001                         ! Quantization
 0                             ! Flex Node Index
 ============================== CSS 3 ====================================
 0.1                           ! Sample Time,sec
 0.0  -1.0  0.0                ! Axis expressed in Body Frame
 90.0                          ! Half-cone Angle, deg
-1.00                          ! Scale Factor
+0.95                          ! Scale Factor
 0.001                         ! Quantization
 0                             ! Flex Node Index
 ============================== CSS 4 ====================================
 0.1                           ! Sample Time,sec
 0.0  0.0  1.0                 ! Axis expressed in Body Frame
 90.0                          ! Half-cone Angle, deg
-1.00                          ! Scale Factor
+0.95                          ! Scale Factor
 0.001                         ! Quantization
 0                             ! Flex Node Index
 ============================== CSS 5 ====================================
 0.1                           ! Sample Time,sec
 0.0  0.0  -1.0                ! Axis expressed in Body Frame
 90.0                          ! Half-cone Angle, deg
-1.00                          ! Scale Factor
+1.05                          ! Scale Factor
 0.001                         ! Quantization
 0                             ! Flex Node Index
 ************************* Fine Sun Sensor *******************************
