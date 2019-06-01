@@ -49,7 +49,8 @@
 
 /* SlugSat custom variables */
 EXTERN port_t serial_port;
-EXTERN double pointing_err; /* In degrees */
+EXTERN double pointing_err; /* Nadir pointing error in degrees */
+EXTERN double aoi_xy; /* Angle of incidence of the sun in the body x-y plane in degrees */
 
 /* Number of Reference Orbits */
 EXTERN long Norb;

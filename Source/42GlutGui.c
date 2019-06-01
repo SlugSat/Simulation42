@@ -890,9 +890,14 @@ void DrawCamHUD(void)
 	  // Get body Zhat and craft position in N frame
 	  glColor4fv(BBrightColor);
 		
-	  //Print angle
+	  // Print pointing error
 	  sprintf(s,"Pointing error: [%5.4f degrees]", pointing_err);
-	  glRasterPos2i(CamWidth-300,CamHeight-100);
+	  glRasterPos2i(CamWidth-300,CamHeight-50);
+	  DrawBitmapString(GLUT_BITMAP_8_BY_13,s);
+
+	  // Print angle of incidence
+	  sprintf(s,"Sun AoI: [%5.4f degrees]", aoi_xy);
+	  glRasterPos2i(CamWidth-300,CamHeight-25);
 	  DrawBitmapString(GLUT_BITMAP_8_BY_13,s);
 	 
 

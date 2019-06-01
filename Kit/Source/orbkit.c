@@ -491,7 +491,6 @@ long LoadTleFromFile(const char *Path, const char *TleFileName,
         	 line[strlen(line)-1] = '\0';
          }
 
-         printf("Line: %s (size %d)\nLabel: %s (size %d)\n", line, (int)strlen(line), Label, (int)strlen(Label));
          if (strcmp(line,Label) == 0) {
             Success = 1;
             fgets(line1,80,infile);
