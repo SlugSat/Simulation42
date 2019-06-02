@@ -1022,7 +1022,7 @@ void SlugSatFSW(struct SCType *S)
 	// Actuator variables
 	static double w_rw[3] = {0, 0, 0}; // Reaction wheel speed
 	double rwVmax = 8.0, trVmax = 3.3; // Voltage rails
-	double maxDip = 2.0; // Torque rod max dipole moment
+	double maxDip = 0.5; // Torque rod max dipole moment (A*m^2)
 
 
 	// ---------- PREPARE TO SEND/RECEIVE FROM THE FLAT-SAT ----------
@@ -1191,30 +1191,28 @@ void SlugSatFSW(struct SCType *S)
 	// Power Variables
 	static double detumbleEnergy = 0, reorientEnergy = 0, stabilizationEnergy = 0, totalEnergy = 0;
 	double rwPower = 0; // Instantaneous power used by the reaction wheels (W)
-	double trPower; // Instantaneous power used by the torque rods (W)
+	double trPower = 0; // Instantaneous power used by the torque rods (W)
 	double totalPower = 0; // Total instantaneous power used by the ACS (W)
-	double panelPower = 2.0; // Power per 1U face (W)
+	double panelPower = 2.28; // Power per 1U face (W)
 	double genPower = 0; // Power from solar panels (W)
 	
-	// Actuator parameters, rwVmax = 8.0, trVmax = 3.3; Voltage rails
-	double trRes = 15.0; //Estimated Torque rod resistance (Ohms)
-	double rwRes = 92.7; //Faulhaber 1509 terminal resistance
-	double rwDriverPower = rwVmax*0.010; // Approximate power consumed by the motor driver board
+	double trRes = 11.0; // Torque rod resistance (Ohms)
+	double rwRes = 92.7; // Faulhaber 1509 terminal resistance (Ohms)
+	double rwDriverPower = rwVmax*0.003; // Approximate power consumed by the motor driver board
 
 	// Reaction Wheel Power
-	double Inl = 0.009; //No load current
 	for(int i = 0;i < 3;i++) {
 		double v = rwVmax*fabs(rwPWM[i])/100.0 - fabs(AC->Whl[i].w)*Ke; // Voltage across the motor (volts)
-		//printf("\nRW volts: %4.2f - %4.2f\n", rwVmax*fabs(rwPWM[i])/100.0, fabs(AC->Whl[i].w)*Ke);
-		if(v > 0) {
-			rwPower += rwVmax*v/rwRes + rwDriverPower;
+		if(v < 0 || rwBrake[i] == 1) {
+			v = 0;
 		}
+		rwPower += v*v/rwRes + rwDriverPower;
 
 	}
 
 	// Torque Rod Power
 	for(int i = 0;i < 3;i++) {
-		double v = trVmax* fabs(trPWM[i]) / 100.0;
+		double v = trVmax*fabs(trPWM[i]) / 100.0;
 		trPower += (v*v / trRes);
 	}
 
