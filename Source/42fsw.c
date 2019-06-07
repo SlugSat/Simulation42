@@ -1350,7 +1350,7 @@ void SlugSatFSW(struct SCType *S)
 
 
 	// ---------- DATA LOGGING & CONTINUOUS FILE OUTPUT ----------
-	static FILE *instPower, *stateEnergy, *tEnergy, *pointingErr, *rwSpeeds, *stateLog, *orbitMaster;
+	static FILE *instPower, *stateEnergy, *tEnergy, *pointingErr, *sunAOI, *rwSpeeds, *stateLog, *orbitMaster;
 	static int First = 1, last_state = -1;
 
 	if (First) {
@@ -1382,6 +1382,9 @@ void SlugSatFSW(struct SCType *S)
 		pointingErr = FileOpen(dir,"pointingErr.csv","w");
 		fprintf(pointingErr, "Pointing error [deg]\n");
 
+		sunAOI = FileOpen(dir,"sunAOI.csv","w");
+		fprintf(sunAOI, "Sun Angle of Incidence in the Body X-Y Plane [deg]\n");
+
 		rwSpeeds = FileOpen(dir,"rwSpeeds.csv","w");
 		fprintf(rwSpeeds, "========== REACTION WHEEL SPEEDS AND CONTROL SIGNALS ==========\nX [rad/s]\tY [rad/s]\tZ [rad/s]\tX [%]\tY [%]\tZ [%]\tX [Brake]\tY [Brake]\tZ [Brake]\n");
 
@@ -1399,6 +1402,9 @@ void SlugSatFSW(struct SCType *S)
 
 	// Print pointing error to file
 	fprintf(pointingErr, "%8.4f,\n", pointing_err);
+
+	// Print sun AOI to file
+	fprintf(sunAOI, "%8.4f,\n", aoi_xy);
 
 	// Print reaction wheel speeds to file
 	fprintf(rwSpeeds, "%lf,\t%lf,\t%lf,\t", AC->Whl[0].w, AC->Whl[1].w, AC->Whl[2].w);
