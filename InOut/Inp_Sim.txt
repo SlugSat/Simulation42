@@ -1,16 +1,16 @@
 <<<<<<<<<<<<<<<<<  42: The Mostly Harmless Simulator  >>>>>>>>>>>>>>>>>
 ************************** Simulation Control **************************
 FAST                            !  Time Mode (FAST, REAL, or EXTERNAL)
-100000.0      1.0               !  Sim Duration, Step Size [sec]
+1000000.0      1.0              !  Sim Duration, Step Size [sec]
 100.0                           !  File Output Interval [sec]
 TRUE                            !  Graphics Front End?
 Inp_Cmd.txt                     !  Command Script File Name
 **************************  Reference Orbits  **************************
 1                               !  Number of Reference Orbits
-TRUE   Orb_EOS.txt              !  Input file name for Orb 0
+TRUE   Orb_SlugSat.txt          !  Input file name for Orb 0
 *****************************  Spacecraft  *****************************
-1                             !  Number of Spacecraft
-TRUE  0 SC_SlugSat.txt        !  Existence, RefOrb, Input file for SC  0
+1                               !  Number of Spacecraft
+TRUE  0 SC_SlugSat.txt          !  Existence, RefOrb, Input file for SC  0
 ***************************** Environment  *****************************
 04 29 2019                      !  Date (Month, Day, Year)
 10 16 00.00                     !  Greenwich Mean Time (Hr,Min,Sec)

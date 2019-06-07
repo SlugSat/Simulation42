@@ -10,7 +10,7 @@ FALSE                         !  Use Polyhedron Gravity
 ::::::::::::::  Use these lines if Body-Centered Orbit  :::::::::::::::::
 EARTH                         !  Orbit Center
 FALSE                         !  Secular Orbit Drift Due to J2
-FILE                           !  Use Keplerian elements (KEP) or (RV) or FILE
+FILE                          !  Use Keplerian elements (KEP) or (RV) or FILE
 PA                            !  Use Peri/Apoapsis (PA) or min alt/ecc (AE)
 408.0     410.0               !  Periapsis & Apoapsis Altitude, km
 200.0  2.0                    !  Min Altitude (km), Eccentricity
@@ -20,8 +20,8 @@ PA                            !  Use Peri/Apoapsis (PA) or min alt/ecc (AE)
 0.0                           !  True Anomaly (deg)
 0.0  0.0  0.0                 !  RV Initial Position (km)
 0.0  0.0  0.0                 !  RV Initial Velocity (km/sec)
-TLE  "0 HST"                  !  TLE, TRV or SPLINE format, Label to find in file
-"3le_5-30-2019.txt"           !  File name
+TLE  "0 ISS (ZARYA)"          !  TLE, TRV, or SPLINE format, line to find in file
+"3le_5-30-2019.txt"           !  File name <- Get this from space-track.org
 :::::::::::::  Use these lines if Lagrange-System Orbit  ::::::::::::::::
 SUNEARTH                      !  Lagrange system
 LAGDOF_MODES                  !  Propagate using LAGDOF_MODES or LAGDOF_COWELL or LAGDOF_SPLINE

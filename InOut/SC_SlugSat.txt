@@ -1,8 +1,8 @@
 <<<<<<<<<<<<<<<<<  42: Spacecraft Description File   >>>>>>>>>>>>>>>>>
-EOS SlugSat                      !  Description
-"SlugSat"                        !  Label
+SlugSat                       !  Description
+"SlugSat"                     !  Label
 GenScSpriteAlpha.ppm          !  Sprite File Name
-SlugSat_FSW                !  Flight Software Identifier
+SlugSat_FSW                   !  Flight Software Identifier
 ************************* Orbit Parameters ****************************
 FIXED                         !  Orbit Prop FIXED, EULER_HILL, or ENCKE
 CM                            !  Pos of CM or ORIGIN, wrt F
@@ -12,7 +12,7 @@ CM                            !  Pos of CM or ORIGIN, wrt F
 LAL                           ! Ang Vel wrt [NL], Att [QA] wrt [NLF]
 0.0    0.0    0.0             ! Ang Vel (deg/sec)
 0.0    0.0    0.0    1.0      ! Quaternion
-135.0    0.0    45.0    123      ! Angles (deg) & Euler Sequence
+135.0    0.0    45.0    123   ! Angles (deg) & Euler Sequence
 ***************************  Dynamics Flags  ***************************
 DYN_JOINT                     ! Rotation STEADY, KIN_JOINT, or DYN_JOINT
 TRUE                          ! Assume constant mass properties
