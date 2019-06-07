@@ -1098,7 +1098,7 @@ void SlugSatFSW(struct SCType *S)
 
 
 	// ---------- REACTION WHEEL DYNAMICS ----------
-	static double Kt = 0.00713, Ke = 0.00713332454, R = 92.7; // Reaction wheel motor constants
+	static double Kt = 0.00713, Ke = 0.00713332454, rwRes = 92.7; // Reaction wheel motor constants
 	static double C0 = 19e-6; // Static friction torque = 19 uNm (in Nm)
 	static double CV = 103e-9; // Dynamic friction torque = 103 nNm/rad/s (in Nm/rad/s)
 	double sample_dt = 0.1; // Oversampling timestep
@@ -1117,7 +1117,7 @@ void SlugSatFSW(struct SCType *S)
 
 				// Coast iff v and e are in the same direction and v < e
 				if(fabs(vRw[i]) >= fabs(e) || sign(vRw[i]) == sign(e)) {
-					trq = (Kt/R)*(vRw[i] - e); // Find torque from DC motor equation
+					trq = (Kt/rwRes)*(vRw[i] - e); // Find torque from DC motor equation
 				}
 				else {
 					trq = 0; // Coasting
@@ -1126,7 +1126,7 @@ void SlugSatFSW(struct SCType *S)
 			}
 			else { // Brake enabled
 				vRw[i] = 0;
-				trq = -(Kt*Ke/R)*w_rw[i]*rwPWM[i]/100.0; // Braking torque from back EMF
+				trq = -(Kt*Ke/rwRes)*w_rw[i]*rwPWM[i]/100.0; // Braking torque from back EMF
 			}
 
 			// Find friction torque from motor
@@ -1193,21 +1193,34 @@ void SlugSatFSW(struct SCType *S)
 	double rwPower = 0; // Instantaneous power used by the reaction wheels (W)
 	double trPower = 0; // Instantaneous power used by the torque rods (W)
 	double totalPower = 0; // Total instantaneous power used by the ACS (W)
-	double panelPower = 2.28; // Power per 1U face (W)
-	double genPower = 0; // Power from solar panels (W)
 	
-	double trRes = 11.0; // Torque rod resistance (Ohms)
-	double rwRes = 92.7; // Faulhaber 1509 terminal resistance (Ohms)
-	double rwDriverPower = rwVmax*0.003; // Approximate power consumed by the motor driver board
+	// Torque rods
+	static double trRes = 11.0; // Torque rod resistance (Ohms)
+
+	// Motor driver characteristics
+	static double HSR = 0.59; // High-side on resistance (Ohms)
+	static double LSR = 0.52; // Low-side on resistance (Ohms)
+	static double IS = 0.01; // Operating supply current (A)
+	static double I_off = 0.003;
+
+
+	// Power generation from solar panels
+	static double panelPower = 2.28; // Power per 1U face (W)
+	double genPower = 0; // Power from solar panels (W)
 
 	// Reaction Wheel Power
 	for(int i = 0;i < 3;i++) {
-		double v = rwVmax*fabs(rwPWM[i])/100.0 - fabs(AC->Whl[i].w)*Ke; // Voltage across the motor (volts)
-		if(v < 0 || rwBrake[i] == 1) {
-			v = 0;
-		}
-		rwPower += v*v/rwRes + rwDriverPower;
+		double e = fabs(AC->Whl[i].w)*Ke; // Back EMF from the motor (V)
+		double v = rwVmax*fabs(rwPWM[i])/100.0 - e; // Voltage across the motor
+		double driverPower;
 
+		if(v < 0 || rwBrake[i] == 1) {
+			rwPower += rwVmax*I_off;
+		}
+		else {
+			double I_RMS = v/rwRes; // RMS current through the motor
+			rwPower += v*v/rwRes + (HSR + LSR)*I_RMS*I_RMS + rwVmax*IS;
+		}
 	}
 
 	// Torque Rod Power
