@@ -1121,7 +1121,6 @@ void SlugSatFSW(struct SCType *S)
 				}
 				else {
 					trq = 0; // Coasting
-					printf("COASTING\n"); // This should never happen; print for debugging purposes
 				}
 			}
 			else { // Brake enabled
