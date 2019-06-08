@@ -1022,7 +1022,7 @@ void SlugSatFSW(struct SCType *S)
 	// Actuator variables
 	static double w_rw[3] = {0, 0, 0}; // Reaction wheel speed
 	double rwVmax = 8.0, trVmax = 3.3; // Voltage rails
-	double maxDip = 0.5; // Torque rod max dipole moment (A*m^2)
+	double maxDip = 1.5; // Torque rod max dipole moment (A*m^2)
 
 
 	// ---------- PREPARE TO SEND/RECEIVE FROM THE FLAT-SAT ----------
