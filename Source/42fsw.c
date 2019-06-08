@@ -1411,7 +1411,7 @@ void SlugSatFSW(struct SCType *S)
 	fprintf(rwSpeeds, "%d,\t%d,\t%d,\n", rwBrake[0], rwBrake[1], rwBrake[2]);
 
 	// Log state transitions
-	static char full_state_names[][20] = {"Detumble\t", "Wait for Attitude", "Reorient\t", "Stabilize\t"};
+	static char full_state_names[][20] = {"Detumble\t\t", "Wait for Attitude", "Reorient\t\t", "Stabilize\t\t"};
 	if(acs_state != -1 && acs_state != last_state) {
 		fprintf(stateLog, "%s\t%7.2lf\t%8ld\t%15.7lf\n", full_state_names[acs_state], SimTime, sim_steps, JD);
 		last_state = acs_state;
