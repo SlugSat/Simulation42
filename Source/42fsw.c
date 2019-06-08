@@ -1349,7 +1349,7 @@ void SlugSatFSW(struct SCType *S)
 
 
 	// ---------- DATA LOGGING & CONTINUOUS FILE OUTPUT ----------
-	static FILE *instPower, *stateEnergy, *tEnergy, *pointingErr, *sunAOI, *rwSpeeds, *stateLog, *orbitMaster;
+	static FILE *instPower, *stateEnergy, *tEnergy, *pointingErr, *sunAOI, *rwSpeeds, *angVelocity, *stateLog, *orbitMaster;
 	static int First = 1, last_state = -1;
 
 	if (First) {
@@ -1387,6 +1387,9 @@ void SlugSatFSW(struct SCType *S)
 		rwSpeeds = FileOpen(dir,"rwSpeeds.csv","w");
 		fprintf(rwSpeeds, "========== REACTION WHEEL SPEEDS AND CONTROL SIGNALS ==========\nX [rad/s]\tY [rad/s]\tZ [rad/s]\tX [%]\tY [%]\tZ [%]\tX [Brake]\tY [Brake]\tZ [Brake]\n");
 
+		angVelocity = FileOpen(dir,"angVelocity.csv","w");
+		fprintf(angVelocity, "Angular velocity of the craft in body frame [rad/s]\n");
+
 		stateLog = FileOpen(dir,"stateLog.42","w");
 		fprintf(stateLog, "========== ACS STATE TRANSITIONS ==========\nNew State\tSim Time [s]\tSim Step\tJulian Date\n");
 
@@ -1410,6 +1413,9 @@ void SlugSatFSW(struct SCType *S)
 	fprintf(rwSpeeds, "%lf,\t%lf,\t%lf,\t", rwPWM[0], rwPWM[1], rwPWM[2]);
 	fprintf(rwSpeeds, "%d,\t%d,\t%d,\n", rwBrake[0], rwBrake[1], rwBrake[2]);
 
+	// Print angular velocity to file
+	fprintf(angVelocity, "%lf,\t%lf,\t%lf,\n", AC->Gyro[0].Rate, AC->Gyro[1].Rate, AC->Gyro[2].Rate);
+
 	// Log state transitions
 	static char full_state_names[][20] = {"Detumble\t\t", "Wait for Attitude", "Reorient\t\t", "Stabilize\t\t"};
 	if(acs_state != -1 && acs_state != last_state) {
@@ -1418,7 +1424,7 @@ void SlugSatFSW(struct SCType *S)
 	}
 
 	// ---------- PER ORBIT FILE OUTPUT ----------
-	static double orbit_start_angle = -1, last_orbit_angle, orbit_start_time, orbit_time = 0;
+	static double orbit_start_angle = -1, last_orbit_angle, orbit_start_time, orbit_time = 0, eclipse_time = 0;
 	static double max_err = 0, cumulative_err = 0;
 	static double below_1deg, below_5deg, below_10deg, below_20deg;
 	static double max_power = 0, cumulative_power = 0, cumulative_gen_power = 0;
@@ -1456,6 +1462,11 @@ void SlugSatFSW(struct SCType *S)
 	orbit_time += AC->DT;
 	orbit_steps++;
 
+	// Eclipse time measurement
+	if(SC[0].Eclipse) {
+		eclipse_time += AC->DT;
+	}
+
 	// Find angle between craft's position and the X inertial unit vector
 	// This is used to determine when an orbit has been completed
 	orbit_angle = acos(Orb[0].PosN[0] / (MAGV(P)));
@@ -1490,6 +1501,9 @@ void SlugSatFSW(struct SCType *S)
 		fprintf(orbitMaster, "End:\n");
 		fprintf(orbitMaster, "%2li %s %4li -- %02li:%02li:%05.2f (JD = %14.7lf)\n\n", Day, mon[Month-1], Year, Hour, Minute, Second, JD);
 
+		// Print time in eclipse
+		fprintf(orbitMaster, "Time in eclipse:\t%7.1lf\n\n", eclipse_time);
+
 		// Print pointing error
 		fprintf(orbitMaster, "Max pointing error:\t%7.4f [Deg]\n", max_err);
 		fprintf(orbitMaster, "Avg pointing error:\t%7.4f [Deg]\n", cumulative_err/orbit_time);
@@ -1506,6 +1520,7 @@ void SlugSatFSW(struct SCType *S)
 		orbit_steps = 0;
 		orbit_time = 0;
 		orbit_start_time = AbsTime;
+		eclipse_time = 0;
 		max_err = 0;
 		cumulative_err = 0;
 		max_power = 0;
