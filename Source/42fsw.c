@@ -1021,7 +1021,7 @@ void SlugSatFSW(struct SCType *S)
 
 	// Actuator variables
 	static double w_rw[3] = {0, 0, 0}; // Reaction wheel speed
-	double rwVmax = 8.0, trVmax = 3.3; // Voltage rails
+	double rwVmax = 8.0, trVmax = 1.0, trVRail = 3.3; // Voltage rails
 	double maxDip = 0.5; // Torque rod max dipole moment (A*m^2)
 
 
@@ -1167,7 +1167,7 @@ void SlugSatFSW(struct SCType *S)
 	// ---------- TORQUE ROD DYNAMICS ----------
 	// Convert torque rod (MTB) PWM to torque & send to AC
 	for(int i = 0;i < 3;i++){
-		AC->MTB[i].Mcmd = maxDip*trPWM[i]/100.0;
+		AC->MTB[i].Mcmd = maxDip*trPWM[i]/100.0 * (trVRail/ trVmax) ;
 	}
 
 
@@ -1223,7 +1223,7 @@ void SlugSatFSW(struct SCType *S)
 
 	// Torque Rod Power
 	for(int i = 0;i < 3;i++) {
-		double v = trVmax*fabs(trPWM[i]) / 100.0;
+		double v = trVRail * fabs(trPWM[i]) / 100.0;
 		trPower += (v*v / trRes);
 	}
 
