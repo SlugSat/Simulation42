@@ -1211,7 +1211,6 @@ void SlugSatFSW(struct SCType *S)
 	for(int i = 0;i < 3;i++) {
 		double e = fabs(AC->Whl[i].w)*Ke; // Back EMF from the motor (V)
 		double v = rwVmax*fabs(rwPWM[i])/100.0 - e; // Voltage across the motor
-		double driverPower;
 
 		if(v < 0 || rwBrake[i] == 1) {
 			rwPower += rwVmax*I_off;
