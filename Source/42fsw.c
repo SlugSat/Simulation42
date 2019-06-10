@@ -1167,7 +1167,7 @@ void SlugSatFSW(struct SCType *S)
 	// ---------- TORQUE ROD DYNAMICS ----------
 	// Convert torque rod (MTB) PWM to torque & send to AC
 	for(int i = 0;i < 3;i++){
-		AC->MTB[i].Mcmd = maxDip*trPWM[i]/100.0 * (trVRail/ trVmax) ;
+		AC->MTB[i].Mcmd = maxDip*trPWM[i]/100.0 * (trVRail/ trVmax);
 	}
 
 
@@ -1261,7 +1261,7 @@ void SlugSatFSW(struct SCType *S)
 		L[i] = Orb[0].PosN[i];
 	}
 
-	//Find angle between vectors using dot product formula
+	// Find angle between vectors using dot product formula
 	dot = VoV(L, B) / (MAGV(L) * MAGV(B));
 	pointing_err = acos(dot);
 	pointing_err = (180*pointing_err) / Pi;
@@ -1270,6 +1270,11 @@ void SlugSatFSW(struct SCType *S)
 	xsun = fmax(AC->CSS[0].Illum, AC->CSS[2].Illum);
 	ysun = fmax(AC->CSS[1].Illum, AC->CSS[3].Illum);
 	aoi_xy = 180*atan2(xsun, ysun)/Pi;
+
+
+	// ---------- CRAFT POSITION COORDINATES ----------
+	// Find latitude in degrees
+	double lat = AC->GPS[0].Lat*180/Pi;
 
 
 	// ---------- PRINT DATA TO TERMINAL ----------
@@ -1346,6 +1351,7 @@ void SlugSatFSW(struct SCType *S)
 	printf("\nDetumbling Energy:\t%8.3f [J]\nReorientation Energy:\t%8.3f [J]\nStabilization Energy:\t%8.3f [J]\n",
 				detumbleEnergy, reorientEnergy, stabilizationEnergy);
 
+	printf("\nLatitude: %5.2f [deg]\n", lat);
 
 	// ---------- DATA LOGGING & CONTINUOUS FILE OUTPUT ----------
 	static FILE *instPower, *stateEnergy, *tEnergy, *pointingErr, *sunAOI, *rwSpeeds, *angVelocity, *stateLog, *orbitMaster;
@@ -1425,7 +1431,8 @@ void SlugSatFSW(struct SCType *S)
 	// ---------- PER ORBIT FILE OUTPUT ----------
 	static double orbit_start_angle = -1, last_orbit_angle, orbit_start_time, orbit_time = 0, eclipse_time = 0;
 	static double max_err = 0, cumulative_err = 0;
-	static double below_1deg, below_5deg, below_10deg, below_20deg;
+	static double below_1deg = 0, below_5deg = 0, below_10deg = 0, below_20deg = 0;
+	static double below_30deg_lat = 0;
 	static double max_power = 0, cumulative_power = 0, cumulative_gen_power = 0;
 	static long orbit_num = 0, orbit_steps = 0;
 
@@ -1448,6 +1455,10 @@ void SlugSatFSW(struct SCType *S)
 	}
 	if(pointing_err < 20.0) {
 		below_20deg += AC->DT;
+	}
+
+	if(fabs(lat) <= 30.0) {
+		below_30deg_lat += AC->DT;
 	}
 
 	// Power measurement
@@ -1514,6 +1525,7 @@ void SlugSatFSW(struct SCType *S)
 		fprintf(orbitMaster, "Max power:\t%8.4f [mW]\n", 1000*max_power);
 		fprintf(orbitMaster, "Avg power:\t%8.4f [mW]\n\n", 1000*cumulative_power/orbit_time);
 		fprintf(orbitMaster, "Avg power gen:\t%8.4f [mW]\n\n", 1000*cumulative_gen_power/orbit_time);
+		fprintf(orbitMaster, "Percent time within 30 degrees of the equator:\n%5.2f%%\n\n", 100.0*below_30deg_lat/orbit_time);
 
 		// Reset variables
 		orbit_steps = 0;
@@ -1529,6 +1541,7 @@ void SlugSatFSW(struct SCType *S)
 		below_5deg = 0;
 		below_10deg = 0;
 		below_20deg = 0;
+		below_30deg_lat = 0;
 	}
 	last_orbit_angle = orbit_angle;
 
