@@ -1021,8 +1021,8 @@ void SlugSatFSW(struct SCType *S)
 
 	// Actuator variables
 	static double w_rw[3] = {0, 0, 0}; // Reaction wheel speed
-	double rwVmax = 8.0, trVmax = 1.0, trVRail = 3.3; // Voltage rails
-	double maxDip = 0.5; // Torque rod max dipole moment (A*m^2)
+	double rwVmax = 8.0, trVmax = 0.2, trVRail = 3.3; // Voltage rails
+	double maxDip = 0.2; // Torque rod max dipole moment (A*m^2)
 
 
 	// ---------- PREPARE TO SEND/RECEIVE FROM THE FLAT-SAT ----------
@@ -1194,7 +1194,7 @@ void SlugSatFSW(struct SCType *S)
 	double totalPower = 0; // Total instantaneous power used by the ACS (W)
 	
 	// Torque rods
-	static double trRes = 11.0; // Torque rod resistance (Ohms)
+	static double trRes = 1.85; // Torque rod resistance (Ohms)
 
 	// Motor driver characteristics
 	static double HSR = 0.59; // High-side on resistance (Ohms)
