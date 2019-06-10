@@ -227,12 +227,12 @@ FALSE  FALSE  FALSE           ! TrnDOF Locked
 2.0  2.0  20.0                ! Noise Equivalent Angle, arcsec RMS
 0                             ! Flex Node Index
 ****************************** GPS **************************************
-0                             ! Number of GPS Receivers
+1                             ! Number of GPS Receivers
 ============================= GPSR 0 ====================================
-0.25                          ! Sample Time,sec
-4.0                           ! Position Noise, m RMS
-0.02                          ! Velocity Noise, m/sec RMS
-20.0E-9                       ! Time Noise, sec RMS
+1.0                           ! Sample Time,sec
+0.0                           ! Position Noise, m RMS
+0.0                           ! Velocity Noise, m/sec RMS
+0.0                           ! Time Noise, sec RMS
 0                             ! Flex Node Index
 *************************** Accelerometer *******************************
 0                             ! Number of Accel Axes
